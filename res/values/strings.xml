@@ -1,4 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">EncProvider</string>
+    <string name="hello">Hello World, EncProviderActivity</string>
+    <string name="bt_insert">Insert</string>
+    <string name="bt_display">Display</string>
+    <string name="bt_clear">Clear</string>
+    <string name="bt_deleteAll">Delete All</string>
+    <string name="empty_list">List view is empty</string>
 </resources>

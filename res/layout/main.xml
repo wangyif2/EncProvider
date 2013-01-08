@@ -4,10 +4,42 @@
               android:layout_width="fill_parent"
               android:layout_height="fill_parent"
         >
-    <TextView
+    <LinearLayout
             android:layout_width="fill_parent"
             android:layout_height="wrap_content"
-            android:text="Hello World, EncProviderActivity"
+            android:gravity="center_horizontal">
+        <Button
+                android:id="@+id/bt_insert"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/bt_insert"/>
+        <Button
+                android:id="@+id/bt_display"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/bt_display"/>
+        <Button
+                android:id="@+id/bt_clear"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/bt_clear"/>
+        <Button
+                android:id="@+id/bt_deleteAll"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/bt_deleteAll"/>
+    </LinearLayout>
+    <ListView
+            android:id="@+id/content_list"
+            android:layout_width="fill_parent"
+            android:layout_height="wrap_content"
             />
+    <TextView
+            android:id="@+id/empty_list_view"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="@string/empty_list"
+            android:visibility="gone" />
+
 </LinearLayout>
 

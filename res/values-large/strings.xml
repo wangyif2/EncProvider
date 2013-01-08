@@ -1,0 +1,4 @@
+<resources>
+    <string name="button_insert">Insert</string>
+    <string name="empty_list">List view is empty</string>
+</resources>
