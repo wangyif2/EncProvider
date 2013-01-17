@@ -1,5 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+<<<<<<< HEAD
+	<string name="app_name">Contacts</string>
+	<string name="no_contact">Currently there are no Contact items</string>
+	<string name="menu_insert">Add Item</string>
+	<string name="menu_delete">Delete Contact</string>
+	<string name="contact_email">Email</string>
+	<string name="contact_age">Age</string>
+	<string name="contact_confirm_button">Confirm</string>
+    <string name="contact_name">Name</string>
+=======
     <string name="app_name">EncProvider</string>
     <string name="hello">Hello World, EncProviderActivity</string>
     <string name="bt_insert">Insert</string>
@@ -7,4 +17,5 @@
     <string name="bt_clear">Clear</string>
     <string name="bt_deleteAll">Delete All</string>
     <string name="empty_list">List view is empty</string>
+>>>>>>> ec5a11b6b9c4fa4e909cc1c3be7bba73feb4369f
 </resources>
