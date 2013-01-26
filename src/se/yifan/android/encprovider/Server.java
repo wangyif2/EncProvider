@@ -10,6 +10,7 @@ import java.util.Enumeration;
  */
 public class Server {
     private static String ipv4;
+    public static String dbName;
 
     public static void main(String[] args) throws IOException {
         ServerSocket serverSocket = null;

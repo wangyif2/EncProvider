@@ -2,7 +2,7 @@ package se.yifan.android.encprovider;
 
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
-import com.almworks.sqlite4java.SQLiteStatement;
+import com.google.gson.Gson;
 
 import java.io.*;
 import java.net.Socket;
@@ -13,6 +13,9 @@ import java.net.Socket;
  */
 public class ServerHandlerThread extends Thread {
     private Socket socket;
+    SQLiteConnection db;
+    Gson gson = new Gson();
+    private boolean done = false;
 
     public ServerHandlerThread(Socket accept) {
         super("ServerHandlerThread");
@@ -28,15 +31,20 @@ public class ServerHandlerThread extends Thread {
             ObjectInputStream from = new ObjectInputStream(socket.getInputStream());
             ObjectOutputStream to = new ObjectOutputStream(socket.getOutputStream());
 
-            while ((fromClient = (QueryPacket) from.readObject()) != null) {
+            while (!done && (fromClient = (QueryPacket) from.readObject()) != null) {
                 QueryPacket toClient = new QueryPacket();
 
                 /* process message */
                 switch (fromClient.type) {
                     case QueryPacket.DB_CREATE:
-                        createDB(fromClient);
+                        toClient = createDB(fromClient);
+                        to.writeObject(toClient);
+                        done = true;
                         break;
                     case QueryPacket.DB_INSERT:
+                        toClient = insertDB(fromClient);
+                        to.writeObject(toClient);
+                        done = true;
                         break;
                     case QueryPacket.DB_QUERY:
                         break;
@@ -51,13 +59,9 @@ public class ServerHandlerThread extends Thread {
                 }
             }
 
-            System.err.println("ERROR: Unknown ECHO_* packet!!");
-            System.exit(-1);
-
             from.close();
             to.close();
             socket.close();
-
         } catch (ClassNotFoundException e) {
             e.printStackTrace();
         } catch (OptionalDataException e) {
@@ -71,24 +75,55 @@ public class ServerHandlerThread extends Thread {
         }
     }
 
-    private void createDB(QueryPacket fromClient) throws SQLiteException {
+    private QueryPacket insertDB(QueryPacket fromClient) {
+        db = getDb();
+
+        System.out.println("Server tring to Insert");
+        System.out.println(fromClient.uri + fromClient.contentValues);
+//        Uri uri = Uri.parse(fromClient.uri);
+//        ContentValues contentValues = gson.fromJson(fromClient.contentValues, ContentValues.class);
+
+        db.dispose();
+
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        return toClient;
+    }
+
+    private QueryPacket createDB(QueryPacket fromClient) throws SQLiteException {
         System.out.println("Trying to Create Local Database with name: " + fromClient.db_name + "\n"
                 + "and Creation Statement: \n" + fromClient.db_creation);
 
-        SQLiteConnection db = new SQLiteConnection(new File(fromClient.db_name));
-        db.open(true);
+        Server.dbName = fromClient.db_name;
+        File dbFile = new File(Server.dbName);
 
-        db.exec(fromClient.db_creation);
-        db.exec("INSERT INTO contacts VALUES ('0','john','john@gmail.com',5)");
+        if (dbFile.exists())
+            return fromClient;
 
-        SQLiteStatement sqLiteStatement = db.prepare("SELECT * FROM contacts");
-
-//        sqLiteStatement.bind(0,"name");
-        while (sqLiteStatement.step()) {
-
-            System.out.println("Entry in Database:\nName: " + sqLiteStatement.columnString(1) + "\nEmail: " + sqLiteStatement.columnString(2));
-        }
-
+        db = getDb();
+        db.open(true).exec(fromClient.db_creation);
         db.dispose();
+
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        return toClient;
     }
+
+    private SQLiteConnection getDb() {
+        if (db == null)
+            db = new SQLiteConnection(new File(Server.dbName));
+        return db;
+    }
+
+//        db.exec("INSERT INTO contacts VALUES ('0','john','john@gmail.com',5)");
+
+//        SQLiteStatement sqLiteStatement = db.prepare("SELECT * FROM contacts");
+//
+////        sqLiteStatement.bind(0,"name");
+//        while (sqLiteStatement.step()) {
+//
+//            System.out.println("Entry in Database:\nName: " + sqLiteStatement.columnString(1) + "\nEmail: " + sqLiteStatement.columnString(2));
+//        }
 }

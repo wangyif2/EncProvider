@@ -4,27 +4,22 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.AsyncTask;
 import android.util.Log;
+import com.google.gson.Gson;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
 
 /**
  * User: robert
  * Date: 12/01/13
  */
 public class EncProvider extends ContentProvider {
-    public static final String serverHostname = "142.1.162.151";
-    public static final int serverPort = 8080;
-    private Socket serverSocket;
-    private ObjectOutputStream out;
-    private ObjectInputStream in;
+    public static final String serverHostname = "142.1.130.40";
+    public static final int serverPort = 1111;
+
     public static QueryPacket fromServer;
     public static QueryPacket toServer;
+    private Gson gson;
 
     @Override
     public boolean onCreate() {
@@ -44,7 +39,24 @@ public class EncProvider extends ContentProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues contentValues) {
-        Log.i("EncProvider", this.getClass().getName() + this.getContext().toString());
+        Log.i("EncProvider", "In method Insert: with URI\n" + uri.toString() + "\nContentValues:\n" + contentValues.toString());
+
+        gson = new Gson();
+
+        toServer = new QueryPacket();
+        toServer.type = QueryPacket.DB_INSERT;
+        toServer.uri = uri.toString();
+        toServer.contentValues = gson.toJson(contentValues);
+
+        new EncNetworkHandler() {
+            @Override
+            public void onPostExecute(QueryPacket result) {
+                fromServer = result;
+            }
+        }.execute(toServer);
+
+//        contentValues.put("key", fromServer.key);
+
         return null;
     }
 
@@ -67,7 +79,7 @@ public class EncProvider extends ContentProvider {
         toServer.db_creation = databaseCreationScript;
         toServer.db_name = databaseName;
 
-        new NetworkHandler() {
+        new EncNetworkHandler() {
             @Override
             public void onPostExecute(QueryPacket result) {
                 fromServer = result;
@@ -75,34 +87,6 @@ public class EncProvider extends ContentProvider {
         }.execute(toServer);
     }
 
-    public class NetworkHandler extends AsyncTask<QueryPacket, Integer, QueryPacket> {
-
-        @Override
-        protected QueryPacket doInBackground(QueryPacket... packetToServer) {
-            QueryPacket packetFromServer = null;
-            try {
-                InetAddress hostIp = InetAddress.getByName(serverHostname);
-
-                serverSocket = new Socket(hostIp, EncProvider.serverPort);
-
-                Log.i("EncProvider", "Connecting to Server with Packet type: " + toServer.type);
-
-                out = new ObjectOutputStream(serverSocket.getOutputStream());
-                in = new ObjectInputStream(serverSocket.getInputStream());
-
-                out.writeObject(packetToServer[0]);
-
-                packetFromServer = (QueryPacket) in.readObject();
-            } catch (IOException e) {
-                e.printStackTrace();
-            } catch (ClassNotFoundException e) {
-                e.printStackTrace();
-            }
-
-            return packetFromServer;
-        }
-
-    }
 
     public static QueryPacket getToServer() {
         return toServer;

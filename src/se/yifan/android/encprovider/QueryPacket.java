@@ -6,7 +6,7 @@ import java.io.Serializable;
  * User: robert
  * Date: 13/01/13
  */
-public class QueryPacket implements Serializable{
+public class QueryPacket implements Serializable {
     public static final int DB_NULL = 0;
     public static final int DB_CREATE = 100;
     public static final int DB_QUERY = 101;
@@ -24,16 +24,23 @@ public class QueryPacket implements Serializable{
     public String db_name;
     public String db_creation;
 
-    public String db_exec;
+    public String uri;
+    public String contentValues;
+
     public String db_query;
+
+    public String key;
 
     @Override
     public String toString() {
         return "QueryPacket{" +
-                "db_name='" + db_name + '\'' +
+                "type=" + type +
+                ", db_name='" + db_name + '\'' +
                 ", db_creation='" + db_creation + '\'' +
-                ", db_exec='" + db_exec + '\'' +
+                ", uri='" + uri + '\'' +
+                ", contentValues='" + contentValues + '\'' +
                 ", db_query='" + db_query + '\'' +
+                ", key='" + key + '\'' +
                 '}';
     }
 }
