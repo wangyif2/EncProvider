@@ -36,7 +36,6 @@ public class EncNetworkHandler extends AsyncTask<QueryPacket, Integer, QueryPack
             out.close();
             in.close();
 
-            Log.i("EncProvider", "Connection closed");
         } catch (IOException e) {
             e.printStackTrace();
         } catch (ClassNotFoundException e) {

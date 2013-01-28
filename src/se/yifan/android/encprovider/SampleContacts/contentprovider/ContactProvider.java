@@ -96,18 +96,18 @@ public class ContactProvider extends EncProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        super.insert(uri, values);
-
         if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with URI: " + uri.toString());
 
         int uriType = sURIMatcher.match(uri);
-        if (DEBUG) Log.i("EncProvider", " in INSERT with URItype: " + uriType);
+        if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with URItype: " + uriType);
 
         SQLiteDatabase sqlDB = database.getWritableDatabase();
         long id = 0;
         switch (uriType) {
             case CONTACTS:
+//                super.insert(ContactTable.TABLE_CONTACTS, null,values);
                 id = sqlDB.insert(ContactTable.TABLE_CONTACTS, null, values);
+                if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with returned id: " + id);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI: " + uri);

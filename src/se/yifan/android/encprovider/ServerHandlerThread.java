@@ -3,24 +3,34 @@ package se.yifan.android.encprovider;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
 import com.google.gson.Gson;
+import org.json.JSONException;
+import org.json.simple.JSONObject;
+import org.json.simple.parser.JSONParser;
+import org.json.simple.parser.ParseException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
+import java.sql.Statement;
+import java.util.HashMap;
 
 /**
  * User: robert
  * Date: 13/01/13
  */
 public class ServerHandlerThread extends Thread {
+//    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
     private Socket socket;
     SQLiteConnection db;
     Gson gson = new Gson();
     private boolean done = false;
+    final static Logger logger = LoggerFactory.getLogger(ServerHandlerThread.class);
 
     public ServerHandlerThread(Socket accept) {
         super("ServerHandlerThread");
         this.socket = accept;
-        System.out.println("Created new Thread to handle client");
+        logger.info("New ServerhandlerThread created...");
     }
 
     @Override
@@ -33,6 +43,8 @@ public class ServerHandlerThread extends Thread {
 
             while (!done && (fromClient = (QueryPacket) from.readObject()) != null) {
                 QueryPacket toClient = new QueryPacket();
+                logger.info("Packet Type: " + fromClient.type);
+                Server.dbName = fromClient.db_name;
 
                 /* process message */
                 switch (fromClient.type) {
@@ -72,16 +84,48 @@ public class ServerHandlerThread extends Thread {
             e.printStackTrace();
         } catch (SQLiteException e) {
             e.printStackTrace();
+        } catch (JSONException e) {
+            e.printStackTrace();
+        } catch (ParseException e) {
+            e.printStackTrace();
         }
     }
 
-    private QueryPacket insertDB(QueryPacket fromClient) {
+    private QueryPacket insertDB(QueryPacket fromClient) throws SQLiteException, ParseException, JSONException {
         db = getDb();
+        Statement  s;
 
-        System.out.println("Server tring to Insert");
-        System.out.println(fromClient.uri + fromClient.contentValues);
-//        Uri uri = Uri.parse(fromClient.uri);
-//        ContentValues contentValues = gson.fromJson(fromClient.contentValues, ContentValues.class);
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT INTO ");
+        sql.append(fromClient.table);
+        sql.append('(');
+
+        JSONObject json = (JSONObject) new JSONParser().parse(fromClient.contentValues);
+        HashMap<String,String> contentValues = (HashMap<String,String>) json.get("mValues");
+        Object[] bindArgs = null;
+
+        int size = (contentValues != null && contentValues.size() > 0) ? contentValues.size() : 0;
+        if (size > 0) {
+            bindArgs = new Object[size];
+            int i = 0;
+            for (String colName : contentValues.keySet()) {
+                sql.append((i > 0) ? "," : "");
+                sql.append(colName);
+                bindArgs[i++] = contentValues.get(colName);
+            }
+            sql.append(')');
+            sql.append(" VALUES (");
+            for (i = 0; i < size; i++) {
+                sql.append((i > 0) ? "," + bindArgs[i].toString() : bindArgs[i].toString());
+            }
+        } else {
+            sql.append(fromClient.nullColumnHack).append(") VALUES (NULL");
+        }
+        sql.append(')');
+
+        logger.info("Insert: " + sql.toString());
+
+//        db.exec(sql.toString());
 
         db.dispose();
 
@@ -92,10 +136,11 @@ public class ServerHandlerThread extends Thread {
     }
 
     private QueryPacket createDB(QueryPacket fromClient) throws SQLiteException {
-        System.out.println("Trying to Create Local Database with name: " + fromClient.db_name + "\n"
+
+        logger.info("Create: Database name: " + fromClient.db_name + "\n"
                 + "and Creation Statement: \n" + fromClient.db_creation);
 
-        Server.dbName = fromClient.db_name;
+
         File dbFile = new File(Server.dbName);
 
         if (dbFile.exists())

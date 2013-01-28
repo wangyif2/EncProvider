@@ -22,13 +22,16 @@ public class QueryPacket implements Serializable {
     public int type = QueryPacket.DB_NULL;
 
     public String db_name;
+
+    //for create
     public String db_creation;
 
-    public String uri;
+    //for insert
+    public String table;
     public String contentValues;
+    public String nullColumnHack;
 
     public String db_query;
-
     public String key;
 
     @Override
@@ -37,7 +40,7 @@ public class QueryPacket implements Serializable {
                 "type=" + type +
                 ", db_name='" + db_name + '\'' +
                 ", db_creation='" + db_creation + '\'' +
-                ", uri='" + uri + '\'' +
+
                 ", contentValues='" + contentValues + '\'' +
                 ", db_query='" + db_query + '\'' +
                 ", key='" + key + '\'' +
