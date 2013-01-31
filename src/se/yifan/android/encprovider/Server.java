@@ -12,9 +12,10 @@ public class Server {
     private static String ipv4;
     public static String dbName;
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) throws IOException, ClassNotFoundException {
         ServerSocket serverSocket = null;
         boolean listening = true;
+        Class.forName("org.sqlite.JDBC");
 
         try {
             if (args.length == 1) {

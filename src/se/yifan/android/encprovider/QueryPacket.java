@@ -22,17 +22,24 @@ public class QueryPacket implements Serializable {
     public int type = QueryPacket.DB_NULL;
 
     public String db_name;
+    public String table;
 
     //for create
     public String db_creation;
 
     //for insert
-    public String table;
     public String contentValues;
     public String nullColumnHack;
 
+    //for delete
+    public String whereClause;
+    //for query
     public String db_query;
+
     public String key;
+    public String[] args;
+    public int[] contentType;
+
 
     @Override
     public String toString() {

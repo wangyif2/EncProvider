@@ -45,7 +45,7 @@ public class ContactProvider extends EncProvider {
     }
 
     @Override
-    public boolean onCreate()  {
+    public boolean onCreate() {
         try {
             super.onCreate(ContactTable.DATABASE_CREATE, ContactDatabaseHelper.DATABASE_NAME);
         } catch (IOException e) {
@@ -62,8 +62,6 @@ public class ContactProvider extends EncProvider {
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        super.query(uri, projection, selection, selectionArgs, sortOrder);
-
         if (DEBUG) Log.d("EncProvider", "ContactProvider: in QUERY with URI: " + uri.toString());
 
         checkColumns(projection);
@@ -83,6 +81,8 @@ public class ContactProvider extends EncProvider {
 
         //get readable?
         SQLiteDatabase db = database.getWritableDatabase();
+        super.query(queryBuilder.buildQuery(projection, selection, null, null, sortOrder, null),
+                selectionArgs);
         Cursor cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
         cursor.setNotificationUri(getContext().getContentResolver(), uri);
 
@@ -105,7 +105,7 @@ public class ContactProvider extends EncProvider {
         long id = 0;
         switch (uriType) {
             case CONTACTS:
-//                super.insert(ContactTable.TABLE_CONTACTS, null,values);
+                super.insert(ContactTable.TABLE_CONTACTS, null, values);
                 id = sqlDB.insert(ContactTable.TABLE_CONTACTS, null, values);
                 if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with returned id: " + id);
                 break;
@@ -129,13 +129,16 @@ public class ContactProvider extends EncProvider {
         int rowsDeleted = 0;
         switch (uriType) {
             case CONTACTS:
+                super.delete(ContactTable.TABLE_CONTACTS, selection, selectionArgs);
                 rowsDeleted = sqlDB.delete(ContactTable.TABLE_CONTACTS, selection, selectionArgs);
                 break;
             case CONTACT_ID:
                 String id = uri.getLastPathSegment();
                 if (TextUtils.isEmpty(selection)) {
+                    super.delete(ContactTable.TABLE_CONTACTS, ContactTable.COLUMN_ID + "=" + id, null);
                     rowsDeleted = sqlDB.delete(ContactTable.TABLE_CONTACTS, ContactTable.COLUMN_ID + "=" + id, null);
                 } else {
+                    super.delete(ContactTable.TABLE_CONTACTS, ContactTable.COLUMN_ID + "=" + id + " and " + selection, selectionArgs);
                     rowsDeleted = sqlDB.delete(ContactTable.TABLE_CONTACTS, ContactTable.COLUMN_ID + "=" + id + " and " + selection, selectionArgs);
                 }
                 break;

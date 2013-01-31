@@ -1,9 +1,8 @@
 package se.yifan.android.encprovider;
 
+import android.database.Cursor;
 import com.almworks.sqlite4java.SQLiteConnection;
 import com.almworks.sqlite4java.SQLiteException;
-import com.google.gson.Gson;
-import org.json.JSONException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -12,7 +11,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.*;
 import java.net.Socket;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.HashMap;
 
 /**
@@ -20,12 +19,13 @@ import java.util.HashMap;
  * Date: 13/01/13
  */
 public class ServerHandlerThread extends Thread {
-//    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
+    //    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
     private Socket socket;
     SQLiteConnection db;
-    Gson gson = new Gson();
     private boolean done = false;
+    Connection connection = null;
     final static Logger logger = LoggerFactory.getLogger(ServerHandlerThread.class);
+    final static String dbConnectionString = "jdbc:sqlite:/home/robert/project/IDEA/EncProvider/contacts.db";
 
     public ServerHandlerThread(Socket accept) {
         super("ServerHandlerThread");
@@ -42,27 +42,28 @@ public class ServerHandlerThread extends Thread {
             ObjectOutputStream to = new ObjectOutputStream(socket.getOutputStream());
 
             while (!done && (fromClient = (QueryPacket) from.readObject()) != null) {
-                QueryPacket toClient = new QueryPacket();
                 logger.info("Packet Type: " + fromClient.type);
                 Server.dbName = fromClient.db_name;
 
                 /* process message */
                 switch (fromClient.type) {
                     case QueryPacket.DB_CREATE:
-                        toClient = createDB(fromClient);
-                        to.writeObject(toClient);
+                        to.writeObject(createDB(fromClient));
                         done = true;
                         break;
                     case QueryPacket.DB_INSERT:
-                        toClient = insertDB(fromClient);
-                        to.writeObject(toClient);
+                        to.writeObject(insertDB(fromClient));
                         done = true;
                         break;
                     case QueryPacket.DB_QUERY:
+                        to.writeObject(queryDB(fromClient));
+                        done = true;
                         break;
                     case QueryPacket.DB_UPDATE:
                         break;
                     case QueryPacket.DB_DELETE:
+                        to.writeObject(deleteDB(fromClient));
+                        done = true;
                         break;
                     case QueryPacket.DB_NULL:
                         break;
@@ -82,26 +83,64 @@ public class ServerHandlerThread extends Thread {
             e.printStackTrace();
         } catch (IOException e) {
             e.printStackTrace();
-        } catch (SQLiteException e) {
-            e.printStackTrace();
-        } catch (JSONException e) {
-            e.printStackTrace();
         } catch (ParseException e) {
             e.printStackTrace();
+        } catch (SQLException e) {
+            e.printStackTrace();
         }
+        logger.info("done");
     }
 
-    private QueryPacket insertDB(QueryPacket fromClient) throws SQLiteException, ParseException, JSONException {
-        db = getDb();
-        Statement  s;
+    private QueryPacket createDB(QueryPacket fromClient) throws SQLException {
 
+        logger.info("Create: Database name: " + fromClient.db_name + "\nand Creation Statement:\n" + fromClient.db_creation);
+
+        connection = DriverManager.getConnection(dbConnectionString);
+        Statement sql = connection.createStatement();
+        sql.execute(fromClient.db_creation);
+        sql.close();
+        connection.close();
+
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        return toClient;
+    }
+
+    private QueryPacket queryDB(QueryPacket fromClient) throws SQLException {
+        String sql = fromClient.db_query;
+        String[] sqlArgs = fromClient.args;
+
+        connection = DriverManager.getConnection(dbConnectionString);
+        PreparedStatement preparedStatement = buildQuerySql(sql, sqlArgs);
+
+        logger.info("Query: " + preparedStatement.toString());
+
+        ResultSet resultSet = preparedStatement.executeQuery();
+        ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
+        while (resultSet.next()) {
+            for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++)
+                logger.info(resultSetMetaData.getColumnName(i) + ": " + resultSet.getString(i));
+        }
+
+        resultSet.close();
+        preparedStatement.close();
+        connection.close();
+
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        return toClient;
+    }
+
+    private QueryPacket insertDB(QueryPacket fromClient) throws ParseException, SQLException {
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT INTO ");
         sql.append(fromClient.table);
-        sql.append('(');
+        sql.append(" (");
 
         JSONObject json = (JSONObject) new JSONParser().parse(fromClient.contentValues);
-        HashMap<String,String> contentValues = (HashMap<String,String>) json.get("mValues");
+        HashMap<String, String> contentValues = (HashMap<String, String>) json.get("mValues");
         Object[] bindArgs = null;
 
         int size = (contentValues != null && contentValues.size() > 0) ? contentValues.size() : 0;
@@ -115,19 +154,34 @@ public class ServerHandlerThread extends Thread {
             }
             sql.append(')');
             sql.append(" VALUES (");
-            for (i = 0; i < size; i++) {
-                sql.append((i > 0) ? "," + bindArgs[i].toString() : bindArgs[i].toString());
-            }
+//            for (i = 0; i < size; i++) {
+//                sql.append((i > 0) ? "," + bindArgs[i].toString() : bindArgs[i].toString());
+//            }
+            sql = bindArguments(sql, bindArgs, fromClient.contentType);
         } else {
             sql.append(fromClient.nullColumnHack).append(") VALUES (NULL");
         }
         sql.append(')');
 
         logger.info("Insert: " + sql.toString());
+//        connection = DriverManager.getConnection(dbConnectionString);
+//        Statement sqlStatement = connection.createStatement();
+//
+//        sqlStatement.execute(sql.toString());
+//
+//        sqlStatement.close();
+//        connection.close();
 
-//        db.exec(sql.toString());
-
-        db.dispose();
+        synchronized (this) {
+            try {
+                db = getDb();
+                db.open();
+                db.exec(sql.toString());
+                db.dispose();
+            } catch (SQLiteException e) {
+                e.printStackTrace();
+            }
+        }
 
         QueryPacket toClient = new QueryPacket();
         toClient.key = "Test";
@@ -135,25 +189,61 @@ public class ServerHandlerThread extends Thread {
         return toClient;
     }
 
-    private QueryPacket createDB(QueryPacket fromClient) throws SQLiteException {
+    private QueryPacket deleteDB(QueryPacket fromClient) throws SQLException {
+        String whereClause = fromClient.whereClause;
+        String[] whereArgs = fromClient.args;
 
-        logger.info("Create: Database name: " + fromClient.db_name + "\n"
-                + "and Creation Statement: \n" + fromClient.db_creation);
+        connection = DriverManager.getConnection(dbConnectionString);
 
+        PreparedStatement preparedStatement = buildQuerySql("DELETE FROM " + fromClient.table +
+                ((whereClause != null) ? " WHERE " + whereClause : ""), whereArgs);
 
-        File dbFile = new File(Server.dbName);
+        logger.info("Delete: " + preparedStatement.toString());
 
-        if (dbFile.exists())
-            return fromClient;
+        preparedStatement.executeUpdate();
 
-        db = getDb();
-        db.open(true).exec(fromClient.db_creation);
-        db.dispose();
+        preparedStatement.close();
+        connection.close();
 
         QueryPacket toClient = new QueryPacket();
         toClient.key = "Test";
 
         return toClient;
+    }
+
+    private PreparedStatement buildQuerySql(String sql, String[] sqlArgs) throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        if (sqlArgs != null) {
+            int i = 0;
+            for (String args : sqlArgs) {
+                preparedStatement.setObject(i++, args);
+            }
+        }
+        return preparedStatement;
+    }
+
+    private StringBuilder bindArguments(StringBuilder sql, Object[] bindArgs, int[] bindArgsType) {
+        final int count = bindArgs != null ? bindArgs.length : 0;
+
+        if (count == 0) {
+            return sql;
+        }
+
+        for (int i = 0; i < count; i++) {
+            final Object arg = bindArgs[i];
+            switch (bindArgsType[i]) {
+                case Cursor.FIELD_TYPE_NULL:
+                    break;
+                case Cursor.FIELD_TYPE_INTEGER:
+                    sql.append((i > 0) ? "," + ((Number) arg).longValue() : ((Number) arg).longValue());
+                    break;
+                case Cursor.FIELD_TYPE_STRING:
+                default:
+                    sql.append((i > 0) ? ", \"" + arg.toString() + "\"" : "\"" + arg.toString() + "\"");
+                    break;
+            }
+        }
+        return sql;
     }
 
     private SQLiteConnection getDb() {
@@ -162,13 +252,4 @@ public class ServerHandlerThread extends Thread {
         return db;
     }
 
-//        db.exec("INSERT INTO contacts VALUES ('0','john','john@gmail.com',5)");
-
-//        SQLiteStatement sqLiteStatement = db.prepare("SELECT * FROM contacts");
-//
-////        sqLiteStatement.bind(0,"name");
-//        while (sqLiteStatement.step()) {
-//
-//            System.out.println("Entry in Database:\nName: " + sqLiteStatement.columnString(1) + "\nEmail: " + sqLiteStatement.columnString(2));
-//        }
 }
