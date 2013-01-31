@@ -9,7 +9,6 @@ import java.util.Enumeration;
  * Date: 13/01/13
  */
 public class Server {
-    private static String ipv4;
     public static String dbName;
 
     public static void main(String[] args) throws IOException, ClassNotFoundException {
