@@ -1,0 +1,75 @@
+\documentclass[12pt,letterpaper]{article}
+\rmfamily
+\usepackage{graphicx}
+\usepackage{url}
+\usepackage{setspace}
+\usepackage[framed]{mcode} %note: frame changed from "single" to "right" in mcode file
+\usepackage[hidelinks]{hyperref}
+\usepackage{parskip}
+\usepackage{amssymb,amsmath}
+\usepackage{fancyvrb}
+\usepackage{listings}
+\renewcommand{\contentsname}{Table of Contents}
+\renewcommand{\lstlistingname}{Code}
+\renewcommand{\lstlistlistingname}{List of Codes}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% CUSTOM COMMANDS
+\newcommand{\HRule}{\rule{\linewidth}{0.5mm}}
+\newcommand{\norm}[1]{\lVert#1\rVert}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MARGIN & PARAGRAPH SETTINGS
+\usepackage{anysize}
+\marginsize{1in}{1in}{1in}{1in}
+\headheight 0.0in
+\headsep 0.0in
+\textheight 9.0in
+\parindent 0.25in
+\raggedright
+\parindent 0.25in
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LST CODE BLOCK SETTINGS
+\lstset{xleftmargin=0in}
+\lstset{xrightmargin=0in}
+\lstset{aboveskip=0in}
+\lstset{belowskip=0.1in}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% COVER PAGE
+\begin{document}
+\input{./Cover.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% TABLE OF CONTENTS
+%\pagestyle{headings}
+\setcounter{page}{1}
+\pagenumbering{roman}
+\onehalfspacing
+\tableofcontents
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LIST OF FIGURES
+\phantomsection
+\addcontentsline{toc}{section}{List of Figures}
+\listoffigures
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LIST OF TABLES
+%\phantomsection
+%\addcontentsline{toc}{section}{List of Tables}
+%\listoftables
+%\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% LIST OF CODES
+\phantomsection
+\addcontentsline{toc}{section}{List of Codes}
+\lstlistoflistings
+\newpage
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% MAIN BODY
+\setcounter{page}{1}
+\pagenumbering{arabic}
+\onehalfspacing
+\input{./Intro.tex}
+\newpage
+\input{./LitRev.tex}
+\newpage
+\input{./Progress.tex}
+\newpage
+\input{./Future.tex}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% REFERENCES
+\phantomsection
+\newpage
+\addcontentsline{toc}{section}{References}
+\bibliographystyle{ieeetr}
+\bibliography{References}
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+\end{document} 

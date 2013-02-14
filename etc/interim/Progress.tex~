@@ -1,0 +1,250 @@
+\section{Progress to Date}\label{Progress}
+
+At this point, the progress to date includes a complete sample Contact Application for design benchmarking, a completed investigation of finding a central point of interception that is general to all application where encryption can be applied with minimal effort and modification of existing system, a complete database synchronization between client and server, and significant progress in the implementation of the transferring database query from client to server. When referring to the stages outlined in Section 1, the current state of the project is approximated to be in the beginning of Stage 3. The following subsections describe the methods used in, and results obtained from, developing the server and client side logic.
+
+
+\subsection{Sample Contacts Application and Intercepting Queries}\label{ProgressApp}
+
+The method used to develop the Sample Contacts application is fairly straightforward. In order to understand where all the query can be intercepted, we first need to look at how the application extends a ContentProvider. The application consist of three main components: a ListViewActivity displaying a contact for each row; a detail Activity displaying the detail of each contact; and a ContentProvider that provides access to contacts stored in the SQLite database. 
+
+First, the database and data model needs to be determined. Code 1 presents the database schema used in the sample application.
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[ContactTable.java]Java implementation of Database Schema for Sample Contact Application}, label = CodeContactTable]
+public class ContactTable {
+
+    // Database table
+    public static final String TABLE_CONTACTS = "contacts";
+    public static final String COLUMN_ID = "_id";
+    public static final String COLUMN_NAME = "name";
+    public static final String COLUMN_EMAIL = "email";
+    public static final String COLUMN_AGE = "age";
+
+    // Database creation SQL statement
+    public static final String DATABASE_CREATE = "create table "
+            + TABLE_CONTACTS
+            + "(" + COLUMN_ID + " integer primary key autoincrement, "
+            + COLUMN_NAME + " text not null, "
+            + COLUMN_EMAIL + " text not null,"
+            + COLUMN_AGE + " integer not null" + ");";
+
+    public static void onCreate(SQLiteDatabase database) {
+        database.execSQL(DATABASE_CREATE);
+    }
+}
+\end{lstlisting}
+}
+
+A ContactDatabaseHelper class was implemented that extents SQLiteHelper. In the onCreate method of this class, a database is created with the schema outlined in ContactTable.DATABASE$_$CREATE statement. Finally, a ContactProvider class is implemented to extend ContentProvider as shown in Code 2 that provides methods such as query and insert. In the ContactProvider class, a URIMatcher is created as a standard helper method for helping the provider figure out which data the query is intended for, for example, a single contact, or a set of contacts. The ContactProvider is called via the ContentResolver class, such as getContentResolver().insert().
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[ContactProvider.java]Sample Contacts Application own implementation of ContentProvider}, label = CodeContactProvider]
+public class ContactProvider extends ContentProvider {
+    // database
+    private ContactDatabaseHelper database;
+
+    // Used for the UriMacher
+    private static final int CONTACTS = 10;
+    private static final int CONTACT_ID = 20;
+
+    // Content URI
+    private static final String AUTHORITY =
+       "se.yifan.android.encprovider.SampleContacts.contentprovider";
+    private static final String BASE_PATH = "contacts";
+    public static final Uri CONTENT_URI = 
+       Uri.parse("content://" + AUTHORITY + "/" + BASE_PATH);
+
+    // MIME type for multiple rows
+    public static final String CONTENT_TYPE = 
+       ContentResolver.CURSOR_DIR_BASE_TYPE + "/contacts";
+    public static final String CONTENT_ITEM_TYPE =
+       ContentResolver.CURSOR_ITEM_BASE_TYPE + "/contact";
+
+    private static final UriMatcher sURIMatcher = 
+       new UriMatcher(UriMatcher.NO_MATCH);
+
+    static {
+        sURIMatcher.addURI(AUTHORITY, BASE_PATH, CONTACTS);
+        sURIMatcher.addURI(AUTHORITY, BASE_PATH + "/#", CONTACT_ID);
+    }
+
+    @Override
+    public boolean onCreate() {...}
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection, 
+       String[] selectionArgs, String sortOrder) {...}
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {...}
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {...}
+    @Override
+    public int update(Uri uri, ContentValues values, String selection,
+       String[] selectionArgs) {...}
+}
+\end{lstlisting}
+}
+
+To be able to intercept all queries performed by the application to the database, we need to act as a middleman between the application and ContentProvider. The method used here, is to create a EncProvider class that also extends ContentProvider, and have ContactProvider extend EncProvider, and call its super methods. As a result, each corresponding methods of ContentProvider will go through EncProvider and be rerouted to the server.
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[ContactProviderEnc.java]Sample Contacts Application extending EncProvider}, label = CodeContactProviderEnc]
+public class ContactProvider extends EncProvider {
+    ...
+    @Override
+    public boolean onCreate() {
+         super.onCreate();
+         …
+    }
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection, 
+       String[] selectionArgs, String sortOrder) {
+         super.query(Uri uri, String[] projection, String selection, 
+            String[] selectionArgs, String sortOrder);
+         …
+    }
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {
+        super.insert(Uri uri, ContentValues values);
+         …
+    }
+     @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {
+        super.delete(Uri uri, String selection, String[] selectionArgs);
+         …
+    }
+     @Override
+    public int update(Uri uri, ContentValues values, String selection, 
+       String[] selectionArgs) {
+        super.update(Uri uri, ContentValues values, String selection, 
+           String[] selectionArgs);
+         …
+    }
+}
+
+public class EncProvider extends ContentProvider{
+   ...
+    @Override
+    public boolean onCreate() {...}
+    @Override
+    public Cursor query(Uri uri, String[] projection, String selection, 
+       String[] selectionArgs, String sortOrder) {...}
+    @Override
+    public Uri insert(Uri uri, ContentValues values) {...}
+    @Override
+    public int delete(Uri uri, String selection, String[] selectionArgs) {...}
+    @Override
+    public int update(Uri uri, ContentValues values, String selection, 
+       String[] selectionArgs) {...}
+}
+\end{lstlisting}
+}
+
+\subsection{Query forwarding and Database Synchronization}\label{ProgressDB}
+
+To allow transfer of query performed on client database to server database, the method employed here uses a socket server, and an own implementation of packet for data transfer.
+
+The packet contains information needed to represent any particular type of query with the query content as shown in Code \ref{QueryPacket}. For example, when a query is performed on the client, a QueryPacket is initialized as demonstrated in Code \ref{QueryPacketInit}.
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[QueryPacket.java]Implementation of QueryPacket for transferring query information accorss client and server}, label = QueryPacket]
+public class QueryPacket implements Serializable {
+    public static final int DB_NULL = 0;
+    public static final int DB_CREATE = 100;
+    public static final int DB_QUERY = 101;
+    public static final int DB_INSERT = 102;
+    public static final int DB_DELETE = 103;
+    public static final int DB_UPDATE = 104;
+
+    public static final int ERROR_INVALID_SYMBOL = -101;
+    public static final int ERROR_OUT_OF_RANGE = -102;
+    public static final int ERROR_SYMBOL_EXISTS = -103;
+    public static final int ERROR_INVALID_EXCHANGE = -104;
+
+    public int type = QueryPacket.DB_NULL;
+
+    public String db_name;
+    public String table;
+
+    public String db_creation;
+    public String contentValues;
+    public String nullColumnHack;
+    public String whereClause;
+    public String db_query;
+
+    public String key;
+    public String[] args;
+    public int[] contentType;
+}
+\end{lstlisting}
+}
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[QueryPacketInit.java]Initialization of QueryPacket for performing Query on server}, label = QueryPacketInit]
+toServer = new QueryPacket();
+toServer.type = QueryPacket.DB_QUERY;
+toServer.db_name = dbName;
+toServer.db_query = sql;
+toServer.args = selectionArgs;
+\end{lstlisting}
+}
+
+The server creates a socket and listens to any incoming connection when it is first created. It uses SQLite database locally due to its lightweight property as well as no major performance difference as shown in table . The library used for interacting with SQLite database on the server side is sqlite-jdbc[8], this library is chosen mainly for two reasons: first of all, it allows for an easy transition to any other jdbc enabled database if needed; second of all, it allows argument binding for queries over other Java implementations[9]. Once a connection is received, any incoming connection will create a new thread to allow concurrent query from client. In each thread, a state machine determines the type of incoming packet and performs needed query on the local database accordingly. After the action is performed, a reply packet is then sent to client containing information such as encryption keys.
+
+[insert Table]
+
+Query handling could be very tricky since different type comes with different data wrapped in Query packet. As a result, the server side logic can become very complicated. For example, build a SQL statement for insertion involves taking care of different data types. As shown in Code \ref{bindArgs}, a bindArgument method is used to build SQL statement for insert, while in Code \ref{buildSql}, a buildSQLStatement method is used to build SQL statement for query and delete.
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[buildSql.java]Method that builds a SQL statement given a set of arguments the statement needs}, label = buildSql]
+private PreparedStatement buildQuerySql(String sql, String[] sqlArgs)
+   throws SQLException {
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        if (sqlArgs != null) {
+            int i = 0;
+            for (String args : sqlArgs) {
+                preparedStatement.setObject(i++, args);
+            }
+        }
+        return preparedStatement;
+    }
+\end{lstlisting}
+}
+
+{
+\singlespacing
+\begin{lstlisting}[caption = {[bindAruments.java]Method that builds a SQL statement given the argument and argument type}, label = bindArgs]
+private StringBuilder bindArguments(StringBuilder sql, Object[] bindArgs,
+   int[] bindArgsType) {
+        final int count = bindArgs != null ? bindArgs.length : 0;
+
+        if (count == 0) {
+            return sql;
+        }
+
+        for (int i = 0; i < count; i++) {
+            final Object arg = bindArgs[i];
+            switch (bindArgsType[i]) {
+                case Cursor.FIELD_TYPE_NULL:
+                    break;
+                case Cursor.FIELD_TYPE_INTEGER:
+                    sql.append((i > 0) ? "," + ((Number) arg).longValue() :
+                     ((Number) arg).longValue());
+                    break;
+                case Cursor.FIELD_TYPE_STRING:
+                default:
+                    sql.append((i > 0) ? ", \"" + arg.toString() + "\"" :
+                     "\"" + arg.toString() + "\"");
+                    break;
+            }
+        }
+        return sql;
+    }
+\end{lstlisting}
+}
+

@@ -1,0 +1,48 @@
+This is BibTeX, Version 0.99c (TeX Live 2009/Debian)
+The top-level auxiliary file: Report.aux
+The style file: ieeetr.bst
+Database file #1: References.bib
+Name 1 in "Raluca Ada Popa, Catherine M. S. Redfield, Nickolai Zeldovich, and Hari Balakrishnan" has a comma at the end for entry popa2011
+while executing---line 963 of file ieeetr.bst
+You've used 11 entries,
+            1876 wiz_defined-function locations,
+            537 strings with 5110 characters,
+and the built_in function-call counts, 1635 in all, are:
+= -- 143
+> -- 56
+< -- 0
++ -- 25
+- -- 14
+* -- 89
+:= -- 259
+add.period$ -- 11
+call.type$ -- 11
+change.case$ -- 11
+chr.to.int$ -- 0
+cite$ -- 11
+duplicate$ -- 80
+empty$ -- 204
+format.name$ -- 14
+if$ -- 399
+int.to.chr$ -- 0
+int.to.str$ -- 11
+missing$ -- 6
+newline$ -- 36
+num.names$ -- 11
+pop$ -- 51
+preamble$ -- 1
+purify$ -- 0
+quote$ -- 0
+skip$ -- 38
+stack$ -- 0
+substring$ -- 23
+swap$ -- 12
+text.length$ -- 0
+text.prefix$ -- 0
+top$ -- 0
+type$ -- 0
+warning$ -- 0
+while$ -- 13
+width$ -- 13
+write$ -- 93
+(There was 1 error message)

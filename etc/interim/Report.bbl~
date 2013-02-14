@@ -1,0 +1,87 @@
+\begin{thebibliography}{10}
+
+\bibitem{MattB1993}
+Matt Blaze, {\em A cryptographic ﬁle system for UNIX}.
+\newblock West Sussex, England: John Wiley \& Sons, 2005.
+
+\bibitem{Jakobsson2007}
+S.~Jakobsson and O.~Amoignon, ``Mesh deformation using radial basis functions
+  for gradient-based aerodynamic shape optimization,'' {\em Science Direct:
+  Computers and Fluids}, 2007.
+
+\bibitem{Ong2008}
+Y.~Ong, P.~Nair, K.~Lum, and Z.~Zhang, ``Hybrid evolutionary algorithm for
+  aerodynamic design using hermite radial basis interpolants,'' {\em
+  Computational Optimization and Applications}, 2008.
+
+\bibitem{Schmit1974}
+L.~Schmit and B.~Farshi, ``Some approximation concepts for structural
+  synthesis,'' {\em AIAA Journal}, pp.~692--699, 1974.
+
+\bibitem{Schmit1976}
+L.~Schmit and H.~Miura, ``Approximation concepts for efficient structural
+  synthesis,'' {\em NASA CR-2552}, 1976.
+
+\bibitem{Box1987}
+G.~Box and N.~Draper, {\em Empirical Model Building and Response Surfaces}.
+\newblock John Wiley \& Sons, 1987.
+
+\bibitem{Myers1995}
+R.~Myers and D.~Montgomery, {\em Response Surface Methodology: Process and
+  Product Optimization Using Designed Experiments}.
+\newblock John Wiley \& Sons, 1995.
+
+\bibitem{Powell1987}
+M.~Powell, {\em Algorithms for Approximation}.
+\newblock Oxford University Press, 1987.
+
+\bibitem{Black2005}
+P.~Black, ``Greedy algorithm,'' {\em Dictionary of Algorithms and Data
+  Structures}, 2005.
+
+\bibitem{Cormen2001}
+Cormen, Leiserson, Rivest, and Stein, {\em Introduction to Algorithms}.
+\newblock 2001.
+
+\bibitem{Nair2003}
+P.~Nair, A.~Choudhury, and A.~Keane, ``Some greedy algorithms for sparse
+  regression and classification with mercer kernels,'' {\em Journal of Machine
+  Learning Research}, 2003.
+
+\bibitem{Natarajan1995}
+B.~Natarajan, ``Sparse approximate solutions to linear systems,'' {\em SIAM
+  Journal of Computing}, 1995.
+
+\bibitem{Mallat1993}
+S.~Mallat and Z.~Zhang, ``Matching pursuit in a time-frequency dictionary,''
+  {\em IEEE Transactions on Signal Processing}, 1993.
+
+\bibitem{Schaback2000}
+R.~Schaback and H.~Wendland, ``Adaptive greedy techniques for approximate
+  solution of large rbf systems,'' {\em Numerical Algorithms}, 2000.
+
+\bibitem{Trefethen1997}
+L.~N. Trefethen and D.~Bau, {\em Numerical Linear Algebra}.
+\newblock SIAM, 1997.
+
+\bibitem{Macedo}
+I.~Macedo, J.~Gois, and L.~Velho, ``Hermite interpolation of implicit surfaces
+  with radial basis functions,'' {\em Vision and Graphics Laboratory -
+  Instituto Nacional de Matematica Pura e Aplicada}.
+
+\bibitem{Cotter1999}
+S.~Cotter, J.~Adler, B.~Rao, and K.~Kreutz-Delgado, ``Forward sequential
+  algorithms for best basis selection,'' {\em IEE Proceedings on Vision, Image,
+  and Signal Processing}, 1999.
+
+\bibitem{Rippa1999}
+S.~Rippa, ``An algorithm for selecting a good value for the parameter c in
+  radial basis function interpolation,'' {\em Advances in Computational
+  Mathematics}, 1999.
+
+\bibitem{Elisseeff}
+A.~Elisseeff and M.~Pontil, ``Leave-one-out error and stability of learning
+  algorithms with applications,'' {\em Max Planck Institute for Biological
+  Cybernetics}.
+
+\end{thebibliography}

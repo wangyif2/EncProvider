@@ -1,0 +1,50 @@
+\begin{thebibliography}{10}
+
+\bibitem{JAlex2008}
+J.~Halderman and S.~Schoen, ``Lest we remember: Cold boot attacks on encryption
+  keys,'' {\em In Proceedings of the 17th USENIX Security Symposium}, 2008.
+
+\bibitem{Dagon2004}
+T.~M. D.~Dagon and T.~Starner, ``Mobile phones as computing devices: the
+  viruses are coming!,'' {\em Pervasive Computing, IEEE}, 2004.
+
+\bibitem{Roxana2011}
+R.~Geambasu, ``Keypad: An auditing file system for theft-prone devices,'' {\em
+  EuroSys'11 - Proceedings of the EuroSys 2011 Conference}, 2011.
+
+\bibitem{contactPro}
+Google, ``Contacts provider, android component manage repository of people.''
+  \url{http://developer.android.com/guide/topics/providers/contacts-provider.h%
+tml}, 2008.
+
+\bibitem{MattB1993}
+M.~Blaze, ``A cryptographic ﬁle system for unix,'' {\em In Proceedings of the
+  1st ACM Conference on Computer and Communications Security (CCS’93)}, 1993.
+
+\bibitem{mobile2012}
+I.~D. Corporation, ``Worldwide quarterly mobile phone tracker.''
+  \url{http://www.idc.com/tracker/showproductinfo.jsp?prod_id=37#.URvB83zCD3w},
+  2012.
+
+\bibitem{sqlite2000}
+D.~R. Hipp, ``Sqlite relational database management system.''
+  \url{http://www.sqlite.org}, June 2000.
+
+\bibitem{Cohen1997}
+F.~Cohen, ``Information system defences: A preliminary classification scheme,''
+  {\em Computers & Security}, vol.~16, no.~2, pp.~94--114, 1997.
+
+\bibitem{popa2011}
+N.~Z. Raluca Ada~Popa, Catherine M. S.~Redfield and H.~Balakrishnan, ``Cryptdb:
+  Protecting confidentiality with encrypted query processing,'' {\em In
+  Proceedings of the 23rd ACM Symposium on Operating Systems Principles}, 2011.
+
+\bibitem{SqlCipher2008}
+Z.~LLC, ``Sqlcipher - an open source library that provides transparent, secure
+  256-bit aes encryption of sqlite database files.''
+  \url{http://sqlcipher.net}, 2008.
+
+\bibitem{encfs}
+EncFS, ``Encfs encrypted filesystem.'' \url{http://www.arg0.net/encfs}, 2008.
+
+\end{thebibliography}
