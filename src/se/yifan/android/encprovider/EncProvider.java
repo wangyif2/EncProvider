@@ -8,6 +8,7 @@ import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 import com.google.gson.Gson;
+import se.yifan.android.encprovider.SampleContacts.database.ContactTable;
 
 import java.io.IOException;
 import java.io.ObjectInputStream;
@@ -77,6 +78,7 @@ public class EncProvider extends ContentProvider {
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_CREATE;
         toServer.db_creation = databaseCreationScript;
+        toServer.db_table = ContactTable.TABLE_CONTACTS;
         toServer.db_name = dbName;
 
         new EncNetworkHandler() {

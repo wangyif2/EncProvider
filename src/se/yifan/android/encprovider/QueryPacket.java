@@ -40,6 +40,7 @@ public class QueryPacket implements Serializable {
     public String key;
     public String[] args;
     public int[] contentType;
+    public String db_table;
 
 
     @Override

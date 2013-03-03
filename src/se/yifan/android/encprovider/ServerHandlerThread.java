@@ -101,6 +101,8 @@ public class ServerHandlerThread extends Thread {
         connection = DatabaseConnection.getInstance();
         Statement sql = connection.createStatement();
         sql.execute(fromClient.db_creation);
+        sql.execute("ALTER TABLE " + fromClient.db_table + " ADD encrypted text;");
+        sql.execute("ALTER TABLE " + fromClient.db_table + " ADD encrypted_key text;");
         sql.close();
 
         //might not need to reply here
