@@ -4,11 +4,19 @@ import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.AsyncTask;
 import android.util.Log;
 import android.widget.Toast;
 import com.google.gson.Gson;
 
 import java.io.IOException;
+import java.io.ObjectInputStream;
+import java.io.ObjectOutputStream;
+import java.io.StreamCorruptedException;
+import java.net.InetAddress;
+import java.net.Socket;
+import java.net.UnknownHostException;
+import java.util.Arrays;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -19,16 +27,19 @@ import java.util.concurrent.TimeoutException;
  */
 public class EncProvider extends ContentProvider {
     public static String dbName;
-    public static final String serverHostname = "142.1.132.158";
+    public static final String serverHostname = "142.1.207.4";
     public static final int serverPort = 1111;
 
     public static QueryPacket fromServer;
     public static QueryPacket toServer;
-    private Gson gson;
+    private Gson gson = new Gson();
+
+    Socket serverSocket = null;
+    public static ObjectOutputStream out = null;
+    public static ObjectInputStream in = null;
 
     @Override
     public boolean onCreate() {
-        Log.i("EncProvider", "EncProvider: onCreate");
         return false;
     }
 
@@ -58,9 +69,10 @@ public class EncProvider extends ContentProvider {
     }
 
     public void onCreate(String databaseCreationScript, String databaseName) throws IOException, ClassNotFoundException {
-        Log.i("EncProvider", "EncProvider: onCreate with databaseCreation Script: \n" + databaseCreationScript
-                + "\n databaseName: " + databaseName);
+        long startTime = System.currentTimeMillis();
         dbName = databaseName;
+
+        new setupNetwork().execute();
 
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_CREATE;
@@ -73,9 +85,15 @@ public class EncProvider extends ContentProvider {
                 fromServer = result;
             }
         }.execute(toServer);
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        Log.i("EncProvider-timeLog", "Time spend in onCreate: " + duration);
     }
 
     public String[] query(String sql, String[] selectionArgs) {
+        long startTime = System.currentTimeMillis();
+        Log.i("EncProvider", "Query: \n\twith sql: " + sql + "\n\tselectionArgs: " + Arrays.toString(selectionArgs));
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_QUERY;
         toServer.db_name = dbName;
@@ -84,11 +102,7 @@ public class EncProvider extends ContentProvider {
 
         EncNetworkHandler en = (EncNetworkHandler) new EncNetworkHandler().execute(toServer);
         try {
-//            Toast toastBegin = Toast.makeText(this.getContext(), "Contacting Server...", 5000);
-//            toastBegin.show();
             fromServer = en.get(5000, TimeUnit.SECONDS);
-//            Toast toastEnd = Toast.makeText(this.getContext(), "Response received...", 1);
-//            toastEnd.show();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
@@ -97,15 +111,18 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
-        Log.i("EncProvider", "EncProvider: Insert: key is: " + fromServer.key);
+        Log.i("EncProvider", "Query key is: " + fromServer.key);
+
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        Log.i("EncProvider-timeLog", "Time spend in query: " + duration);
 
         return new String[0];
     }
 
     public void insert(String tableContacts, String nullColumnHack, ContentValues contentValues) {
-        Log.i("EncProvider", "EncProvider: Insert: with table\n" + tableContacts + "\nContentValues:\n" + contentValues.toString());
-
-        gson = new Gson();
+        long startTime = System.currentTimeMillis();
+        Log.i("EncProvider", "Insert: \n\twith table: " + tableContacts + "\n\tContentValues: " + contentValues.toString());
 
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_INSERT;
@@ -127,11 +144,7 @@ public class EncProvider extends ContentProvider {
 
         EncNetworkHandler en = (EncNetworkHandler) new EncNetworkHandler().execute(toServer);
         try {
-            Toast toastBegin = Toast.makeText(this.getContext(), "Contacting Server...", 5000);
-            toastBegin.show();
             fromServer = en.get(5000, TimeUnit.SECONDS);
-            Toast toastEnd = Toast.makeText(this.getContext(), "Response received...", 1);
-            toastEnd.show();
         } catch (InterruptedException e) {
             e.printStackTrace();
         } catch (ExecutionException e) {
@@ -141,15 +154,19 @@ public class EncProvider extends ContentProvider {
         }
 
         Log.i("EncProvider", "EncProvider: Insert: key is: " + fromServer.key);
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        Log.i("EncProvider-timeLog", "Time spend in insert: " + duration);
 
 //        contentValues.put("key", fromServer.key);
     }
 
     public void delete(String tableContacts, String whereClause, String[] whereArgs) {
+        long startTime = System.currentTimeMillis();
         if (whereClause == null || whereArgs == null)
-            Log.i("EncProvider", "EncProvider: Delete: with table\n" + tableContacts + "\nwhereClause: null\nwhereArgs: null");
+            Log.i("EncProvider", "Delete: \n\twith table: " + tableContacts + "\n\twhereClause: null\n\twhereArgs: null");
         else
-            Log.i("EncProvider", "EncProvider: Delete: with table\n" + tableContacts + "\nwhereClause:\n" + whereClause + "\nwhereArgs:\n" + whereArgs.toString());
+            Log.i("EncProvider", "Delete: \n\twith table: " + tableContacts + "\n\twhereClause: " + whereClause + "\n\twhereArgs:" + whereArgs.toString());
 
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_DELETE;
@@ -173,23 +190,10 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
-        Log.i("EncProvider", "EncProvider: Delete: key is: " + fromServer.key);
-    }
-
-    public static QueryPacket getToServer() {
-        return toServer;
-    }
-
-    public static QueryPacket getFromServer() {
-        return fromServer;
-    }
-
-    public static void setFromServer(QueryPacket fromServer) {
-        EncProvider.fromServer = fromServer;
-    }
-
-    public static void setToServer(QueryPacket toServer) {
-        EncProvider.toServer = toServer;
+        Log.i("EncProvider", "Delete: key is: " + fromServer.key);
+        long endTime = System.currentTimeMillis();
+        long duration = endTime - startTime;
+        Log.i("EncProvider-timeLog", "Time spend in delete: " + duration);
     }
 
     public static int getTypeOfObject(Object obj) {
@@ -204,6 +208,27 @@ public class EncProvider extends ContentProvider {
             return Cursor.FIELD_TYPE_INTEGER;
         } else {
             return Cursor.FIELD_TYPE_STRING;
+        }
+    }
+
+    class setupNetwork extends AsyncTask<Void, Void, Void> {
+
+        @Override
+        protected Void doInBackground(Void... params) {
+            InetAddress hostIp = null;
+            try {
+                hostIp = InetAddress.getByName(serverHostname);
+                serverSocket = new Socket(hostIp, EncProvider.serverPort);
+                out = new ObjectOutputStream(serverSocket.getOutputStream());
+                in = new ObjectInputStream(serverSocket.getInputStream());
+            } catch (UnknownHostException e) {
+                e.printStackTrace();
+            } catch (StreamCorruptedException e) {
+                e.printStackTrace();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+            return null;
         }
     }
 }

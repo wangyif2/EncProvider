@@ -2,7 +2,6 @@ package se.yifan.android.encprovider;
 
 import android.database.Cursor;
 import com.almworks.sqlite4java.SQLiteConnection;
-import com.almworks.sqlite4java.SQLiteException;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -12,7 +11,7 @@ import org.slf4j.LoggerFactory;
 import java.io.*;
 import java.net.Socket;
 import java.sql.*;
-import java.util.HashMap;
+import java.util.*;
 
 /**
  * User: robert
@@ -41,28 +40,28 @@ public class ServerHandlerThread extends Thread {
             ObjectInputStream from = new ObjectInputStream(socket.getInputStream());
             ObjectOutputStream to = new ObjectOutputStream(socket.getOutputStream());
 
-            while (!done && (fromClient = (QueryPacket) from.readObject()) != null) {
-                logger.info("Packet Type: " + fromClient.type);
+            while ((fromClient = (QueryPacket) from.readObject()) != null && !done) {
+                logger.info("Started...\n\tRead Packet Type: " + fromClient.type);
                 Server.dbName = fromClient.db_name;
 
+                long startTime = System.currentTimeMillis();
                 /* process message */
                 switch (fromClient.type) {
                     case QueryPacket.DB_CREATE:
                         to.writeObject(createDB(fromClient));
-                        done = true;
                         break;
                     case QueryPacket.DB_INSERT:
                         to.writeObject(insertDB(fromClient));
-                        done = true;
                         break;
                     case QueryPacket.DB_QUERY:
                         to.writeObject(queryDB(fromClient));
-                        done = true;
                         break;
                     case QueryPacket.DB_UPDATE:
                         break;
                     case QueryPacket.DB_DELETE:
                         to.writeObject(deleteDB(fromClient));
+                        break;
+                    case QueryPacket.DB_CLOSE:
                         done = true;
                         break;
                     case QueryPacket.DB_NULL:
@@ -70,6 +69,8 @@ public class ServerHandlerThread extends Thread {
                     default:
                         break;
                 }
+                long endTime = System.currentTimeMillis();
+                logger.info("Finished...\n\tTime spent processing the switch: " + (endTime - startTime));
             }
 
             from.close();
@@ -92,29 +93,38 @@ public class ServerHandlerThread extends Thread {
     }
 
     private QueryPacket createDB(QueryPacket fromClient) throws SQLException {
+        //start time measure
+        long startTime = System.currentTimeMillis();
+        logger.info("Create: started.. \n\tDatabase name: " + fromClient.db_name + "\n\tand Creation Statement:\n\t" + fromClient.db_creation);
 
-        logger.info("Create: Database name: " + fromClient.db_name + "\nand Creation Statement:\n" + fromClient.db_creation);
-
-        connection = DriverManager.getConnection(dbConnectionString);
+        //start creating table
+        connection = DatabaseConnection.getInstance();
         Statement sql = connection.createStatement();
         sql.execute(fromClient.db_creation);
         sql.close();
-        connection.close();
 
+        //might not need to reply here
         QueryPacket toClient = new QueryPacket();
         toClient.key = "Test";
 
+        //log the time
+        long endTime = System.currentTimeMillis();
+        logger.info("Create: done..." + (endTime - startTime));
         return toClient;
     }
 
     private QueryPacket queryDB(QueryPacket fromClient) throws SQLException {
+        //start time measure
+        long startTime = System.currentTimeMillis();
+        logger.info("Query: started...");
+
+        //start the query
         String sql = fromClient.db_query;
         String[] sqlArgs = fromClient.args;
 
         connection = DriverManager.getConnection(dbConnectionString);
         PreparedStatement preparedStatement = buildQuerySql(sql, sqlArgs);
 
-        logger.info("Query: " + preparedStatement.toString());
 
         ResultSet resultSet = preparedStatement.executeQuery();
         ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
@@ -125,15 +135,67 @@ public class ServerHandlerThread extends Thread {
 
         resultSet.close();
         preparedStatement.close();
-        connection.close();
 
+        //reply with key
         QueryPacket toClient = new QueryPacket();
         toClient.key = "Test";
+
+        //log end time
+        long endTime = System.currentTimeMillis();
+        logger.info("Query: done..." + (endTime - startTime));
 
         return toClient;
     }
 
     private QueryPacket insertDB(QueryPacket fromClient) throws ParseException, SQLException {
+        //start time measure
+        long startTime = System.currentTimeMillis();
+        logger.info("Insert: started...");
+
+        //start the insert
+        StringBuilder sql = buildInsertSql(fromClient);
+
+        connection = DatabaseConnection.getInstance();
+        Statement p = connection.createStatement();
+        p.execute(sql.toString());
+
+        //reply with key
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        //log end time
+        long endTime = System.currentTimeMillis();
+        logger.info("Insert: done..." + (endTime - startTime));
+
+        return toClient;
+    }
+
+    private QueryPacket deleteDB(QueryPacket fromClient) throws SQLException {
+        //start timing
+        long startTime = System.currentTimeMillis();
+        logger.info("Delete: started... ");
+
+        //start delete
+        String whereClause = fromClient.whereClause;
+        String[] whereArgs = fromClient.args;
+
+        connection = DatabaseConnection.getInstance();
+        PreparedStatement preparedStatement = buildQuerySql("DELETE FROM " + fromClient.table +
+                ((whereClause != null) ? " WHERE " + whereClause : ""), whereArgs);
+        preparedStatement.executeUpdate();
+        preparedStatement.close();
+
+        //might not need, reply with key
+        QueryPacket toClient = new QueryPacket();
+        toClient.key = "Test";
+
+        //log time spent
+        long endTime = System.currentTimeMillis();
+        logger.info("Delete: done..." + (endTime - startTime));
+        return toClient;
+    }
+
+    private StringBuilder buildInsertSql(QueryPacket fromClient) throws ParseException {
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT INTO ");
         sql.append(fromClient.table);
@@ -154,61 +216,12 @@ public class ServerHandlerThread extends Thread {
             }
             sql.append(')');
             sql.append(" VALUES (");
-//            for (i = 0; i < size; i++) {
-//                sql.append((i > 0) ? "," + bindArgs[i].toString() : bindArgs[i].toString());
-//            }
             sql = bindArguments(sql, bindArgs, fromClient.contentType);
         } else {
             sql.append(fromClient.nullColumnHack).append(") VALUES (NULL");
         }
         sql.append(')');
-
-        logger.info("Insert: " + sql.toString());
-//        connection = DriverManager.getConnection(dbConnectionString);
-//        Statement sqlStatement = connection.createStatement();
-//
-//        sqlStatement.execute(sql.toString());
-//
-//        sqlStatement.close();
-//        connection.close();
-
-        synchronized (this) {
-            try {
-                db = getDb();
-                db.open();
-                db.exec(sql.toString());
-                db.dispose();
-            } catch (SQLiteException e) {
-                e.printStackTrace();
-            }
-        }
-
-        QueryPacket toClient = new QueryPacket();
-        toClient.key = "Test";
-
-        return toClient;
-    }
-
-    private QueryPacket deleteDB(QueryPacket fromClient) throws SQLException {
-        String whereClause = fromClient.whereClause;
-        String[] whereArgs = fromClient.args;
-
-        connection = DriverManager.getConnection(dbConnectionString);
-
-        PreparedStatement preparedStatement = buildQuerySql("DELETE FROM " + fromClient.table +
-                ((whereClause != null) ? " WHERE " + whereClause : ""), whereArgs);
-
-        logger.info("Delete: " + preparedStatement.toString());
-
-        preparedStatement.executeUpdate();
-
-        preparedStatement.close();
-        connection.close();
-
-        QueryPacket toClient = new QueryPacket();
-        toClient.key = "Test";
-
-        return toClient;
+        return sql;
     }
 
     private PreparedStatement buildQuerySql(String sql, String[] sqlArgs) throws SQLException {

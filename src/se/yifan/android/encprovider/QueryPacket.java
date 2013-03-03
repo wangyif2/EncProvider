@@ -13,6 +13,7 @@ public class QueryPacket implements Serializable {
     public static final int DB_INSERT = 102;
     public static final int DB_DELETE = 103;
     public static final int DB_UPDATE = 104;
+    public static final int DB_CLOSE = 105;
 
     public static final int ERROR_INVALID_SYMBOL = -101;
     public static final int ERROR_OUT_OF_RANGE = -102;

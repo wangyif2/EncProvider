@@ -21,6 +21,7 @@ public class Server {
                 serverSocket = new ServerSocket(Integer.parseInt(args[0]));
                 System.out.println("Server up and running with:\nhostname: " + getLocalIpAddress() + "\nport: " + args[0]);
                 System.out.println("Waiting to accept client...");
+                System.out.println("Remember to setup client hostname");
             } else {
                 System.err.println("ERROR: Invalid arguments!");
                 System.exit(-1);

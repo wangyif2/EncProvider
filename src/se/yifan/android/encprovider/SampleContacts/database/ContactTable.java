@@ -13,7 +13,7 @@ public class ContactTable {
     public static final String COLUMN_AGE = "age";
 
     // Database creation SQL statement
-    public static final String DATABASE_CREATE = "create table "
+    public static final String DATABASE_CREATE = "create table if not exists "
             + TABLE_CONTACTS
             + "(" + COLUMN_ID + " integer primary key autoincrement, "
             + COLUMN_NAME + " text not null, "

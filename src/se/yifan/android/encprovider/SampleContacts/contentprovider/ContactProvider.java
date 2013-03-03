@@ -8,7 +8,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
 import android.text.TextUtils;
-import android.util.Log;
 import se.yifan.android.encprovider.EncProvider;
 import se.yifan.android.encprovider.SampleContacts.database.ContactDatabaseHelper;
 import se.yifan.android.encprovider.SampleContacts.database.ContactTable;
@@ -54,16 +53,12 @@ public class ContactProvider extends EncProvider {
             e.printStackTrace();
         }
 
-        if (DEBUG) Log.d("EncProvider", "ContactProvider: in onCreate.");
-
         database = new ContactDatabaseHelper(getContext());
         return false;
     }
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
-        if (DEBUG) Log.d("EncProvider", "ContactProvider: in QUERY with URI: " + uri.toString());
-
         checkColumns(projection);
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
         queryBuilder.setTables(ContactTable.TABLE_CONTACTS);
@@ -96,10 +91,7 @@ public class ContactProvider extends EncProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with URI: " + uri.toString());
-
         int uriType = sURIMatcher.match(uri);
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with URItype: " + uriType);
 
         SQLiteDatabase sqlDB = database.getWritableDatabase();
         long id = 0;
@@ -107,7 +99,6 @@ public class ContactProvider extends EncProvider {
             case CONTACTS:
                 super.insert(ContactTable.TABLE_CONTACTS, null, values);
                 id = sqlDB.insert(ContactTable.TABLE_CONTACTS, null, values);
-                if (DEBUG) Log.i("EncProvider", "ContactProvider: in INSERT with returned id: " + id);
                 break;
             default:
                 throw new IllegalArgumentException("Unknown URI: " + uri);
@@ -120,10 +111,7 @@ public class ContactProvider extends EncProvider {
     public int delete(Uri uri, String selection, String[] selectionArgs) {
         super.delete(uri, selection, selectionArgs);
 
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in DELETE with URI: " + uri.toString());
-
         int uriType = sURIMatcher.match(uri);
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in DELETE with URItype: " + uriType);
 
         SQLiteDatabase sqlDB = database.getWritableDatabase();
         int rowsDeleted = 0;
@@ -153,11 +141,7 @@ public class ContactProvider extends EncProvider {
     public int update(Uri uri, ContentValues values, String selection, String[] selectionArgs) {
         super.update(uri, values, selection, selectionArgs);
 
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in UPDATE with URI: " + uri.toString());
-
         int uriType = sURIMatcher.match(uri);
-
-        if (DEBUG) Log.i("EncProvider", "ContactProvider: in UPDATE with URItype: " + uriType);
 
         SQLiteDatabase sqlDB = database.getWritableDatabase();
         int rowsUpdated = 0;

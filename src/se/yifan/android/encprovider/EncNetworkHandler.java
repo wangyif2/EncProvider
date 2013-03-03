@@ -4,37 +4,28 @@ import android.os.AsyncTask;
 import android.util.Log;
 
 import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.net.InetAddress;
-import java.net.Socket;
 
 /**
  * User: robert
  * Date: 26/01/13
  */
 public class EncNetworkHandler extends AsyncTask<QueryPacket, Integer, QueryPacket> {
-
+    long startTime,endTime;
     @Override
     protected QueryPacket doInBackground(QueryPacket... packetToServer) {
         QueryPacket packetFromServer = null;
         try {
-            InetAddress hostIp = InetAddress.getByName(EncProvider.serverHostname);
+//            Log.i("EncProvider", "Connecting to Server with Packet type: " + packetToServer[0].type);
 
-            Socket serverSocket = new Socket(hostIp, EncProvider.serverPort);
+            startTime = System.currentTimeMillis();
+            EncProvider.out.writeObject(packetToServer[0]);
+            endTime = System.currentTimeMillis();
+            Log.i("EncProvider-timeLog", "Time spent sending " + (endTime-startTime));
 
-            Log.i("EncProvider", "Connecting to Server with Packet type: " + packetToServer[0].type);
-
-            ObjectOutputStream out = new ObjectOutputStream(serverSocket.getOutputStream());
-            ObjectInputStream in = new ObjectInputStream(serverSocket.getInputStream());
-
-            out.writeObject(packetToServer[0]);
-
-            packetFromServer = (QueryPacket) in.readObject();
-
-            serverSocket.close();
-            out.close();
-            in.close();
+            startTime = System.currentTimeMillis();
+            packetFromServer = (QueryPacket) EncProvider.in.readObject();
+            endTime = System.currentTimeMillis();
+            Log.i("EncProvider-timeLog", "Time spent waiting for receive " + (endTime-startTime));
 
         } catch (IOException e) {
             e.printStackTrace();
