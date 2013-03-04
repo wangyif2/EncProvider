@@ -1,7 +1,5 @@
 package se.yifan.android.encprovider;
 
-import com.almworks.sqlite4java.SQLiteConnection;
-
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
@@ -12,7 +10,6 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
 
-    private static SQLiteConnection db;
     private static Connection connection = null;
     private final static String dbConnectionString = "jdbc:sqlite:/home/robert/project/IDEA/EncProvider/contacts.db";
 

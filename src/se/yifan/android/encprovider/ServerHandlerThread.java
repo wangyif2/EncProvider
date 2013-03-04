@@ -1,17 +1,25 @@
 package se.yifan.android.encprovider;
 
 import android.database.Cursor;
-import com.almworks.sqlite4java.SQLiteConnection;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
 import java.io.*;
+import java.math.BigInteger;
 import java.net.Socket;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
+import java.security.spec.InvalidParameterSpecException;
 import java.sql.*;
-import java.util.*;
+import java.util.HashMap;
 
 /**
  * User: robert
@@ -20,7 +28,6 @@ import java.util.*;
 public class ServerHandlerThread extends Thread {
     //    Logger.getLogger("com.almworks.sqlite4java").setLevel(Level.OFF);
     private Socket socket;
-    SQLiteConnection db;
     private boolean done = false;
     Connection connection = null;
     final static Logger logger = LoggerFactory.getLogger(ServerHandlerThread.class);
@@ -88,6 +95,20 @@ public class ServerHandlerThread extends Thread {
             e.printStackTrace();
         } catch (SQLException e) {
             e.printStackTrace();
+        } catch (NoSuchPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeySpecException e) {
+            e.printStackTrace();
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+        } catch (IllegalBlockSizeException e) {
+            e.printStackTrace();
+        } catch (BadPaddingException e) {
+            e.printStackTrace();
+        } catch (InvalidKeyException e) {
+            e.printStackTrace();
+        } catch (InvalidParameterSpecException e) {
+            e.printStackTrace();
         }
         logger.info("done");
     }
@@ -101,8 +122,7 @@ public class ServerHandlerThread extends Thread {
         connection = DatabaseConnection.getInstance();
         Statement sql = connection.createStatement();
         sql.execute(fromClient.db_creation);
-        sql.execute("ALTER TABLE " + fromClient.db_table + " ADD encrypted text;");
-        sql.execute("ALTER TABLE " + fromClient.db_table + " ADD encrypted_key text;");
+        sql.execute("ALTER TABLE " + fromClient.db_table + " ADD  " + EncUtil.COLUMN_ENC_KEY + " text;");
         sql.close();
 
         //might not need to reply here
@@ -149,7 +169,7 @@ public class ServerHandlerThread extends Thread {
         return toClient;
     }
 
-    private QueryPacket insertDB(QueryPacket fromClient) throws ParseException, SQLException {
+    private QueryPacket insertDB(QueryPacket fromClient) throws ParseException, SQLException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidParameterSpecException, InvalidKeyException, InvalidKeySpecException {
         //start time measure
         long startTime = System.currentTimeMillis();
         logger.info("Insert: started...");
@@ -197,7 +217,7 @@ public class ServerHandlerThread extends Thread {
         return toClient;
     }
 
-    private StringBuilder buildInsertSql(QueryPacket fromClient) throws ParseException {
+    private StringBuilder buildInsertSql(QueryPacket fromClient) throws ParseException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidParameterSpecException, UnsupportedEncodingException, BadPaddingException, IllegalBlockSizeException {
         StringBuilder sql = new StringBuilder();
         sql.append("INSERT INTO ");
         sql.append(fromClient.table);
@@ -207,15 +227,22 @@ public class ServerHandlerThread extends Thread {
         HashMap<String, String> contentValues = (HashMap<String, String>) json.get("mValues");
         Object[] bindArgs = null;
 
+        SecretKey secret = EncUtil.generateKey();
+
         int size = (contentValues != null && contentValues.size() > 0) ? contentValues.size() : 0;
         if (size > 0) {
-            bindArgs = new Object[size];
+            bindArgs = new Object[size+1];
             int i = 0;
             for (String colName : contentValues.keySet()) {
                 sql.append((i > 0) ? "," : "");
                 sql.append(colName);
                 bindArgs[i++] = contentValues.get(colName);
+                EncUtil.encryptMsg(contentValues.get(colName), secret);
             }
+            byte[] encoded = secret.getEncoded();
+            String data = new BigInteger(1, encoded).toString(16);
+            sql.append(",").append(EncUtil.COLUMN_ENC_KEY);
+            bindArgs[i++] = data;
             sql.append(')');
             sql.append(" VALUES (");
             sql = bindArguments(sql, bindArgs, fromClient.contentType);
@@ -225,6 +252,7 @@ public class ServerHandlerThread extends Thread {
         sql.append(')');
         return sql;
     }
+
 
     private PreparedStatement buildQuerySql(String sql, String[] sqlArgs) throws SQLException {
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
@@ -244,7 +272,8 @@ public class ServerHandlerThread extends Thread {
             return sql;
         }
 
-        for (int i = 0; i < count; i++) {
+        int i;
+        for (i = 0; i < count-1; i++) {
             final Object arg = bindArgs[i];
             switch (bindArgsType[i]) {
                 case Cursor.FIELD_TYPE_NULL:
@@ -258,13 +287,7 @@ public class ServerHandlerThread extends Thread {
                     break;
             }
         }
+        sql.append(", \"" + bindArgs[i] + "\"");
         return sql;
     }
-
-    private SQLiteConnection getDb() {
-        if (db == null)
-            db = new SQLiteConnection(new File(Server.dbName));
-        return db;
-    }
-
 }

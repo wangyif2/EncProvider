@@ -28,7 +28,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class EncProvider extends ContentProvider {
     public static String dbName;
-    public static final String serverHostname = "142.1.207.4";
+    public static final String serverHostname = "142.1.202.242";
     public static final int serverPort = 1111;
 
     public static QueryPacket fromServer;
