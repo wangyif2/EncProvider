@@ -14,6 +14,7 @@ import se.yifan.android.encprovider.SampleContacts.database.ContactTable;
 
 import java.io.IOException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.HashSet;
 
 public class ContactProvider extends EncProvider {
@@ -76,9 +77,13 @@ public class ContactProvider extends EncProvider {
 
         //get readable?
         SQLiteDatabase db = database.getWritableDatabase();
-        super.query(queryBuilder.buildQuery(projection, selection, null, null, sortOrder, null),
+        HashMap<Integer, byte[]> decryptionSet= super.query(queryBuilder.buildQuery(projection, selection, null, null, sortOrder, null),
                 selectionArgs);
+
         Cursor cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
+
+        //create MatrixCursor here and decrypt what's in cursor with decryption set
+
         cursor.setNotificationUri(getContext().getContentResolver(), uri);
 
         return cursor;

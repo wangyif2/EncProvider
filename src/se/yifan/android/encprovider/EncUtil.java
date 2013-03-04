@@ -48,18 +48,27 @@ public class EncUtil {
     /* Encrypt the message. */
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secret);
-        byte[] ciphertext = cipher.doFinal(message.getBytes("UTF-8"));
-        logger.info("encrypted: " + new String(ciphertext, "UTF-8"));
-        return ciphertext;
+        byte[] cipherText = cipher.doFinal(message.getBytes("UTF-8"));
+        logger.info("encrypted: " + new String(cipherText, "UTF-8"));
+        return cipherText;
     }
 
-    public static void decryptMsg(byte[] ciphertext, SecretKey secret) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidParameterSpecException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
+    public static String decryptMsg(byte[] cipherText, SecretKey secret) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidParameterSpecException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
         /* Decrypt the message, given derived key and initialization vector. */
         Cipher cipher = Cipher.getInstance("AES/CBC/PKCS5Padding");
         AlgorithmParameters params = cipher.getParameters();
         byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
         cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
-        String plaintext = new String(cipher.doFinal(ciphertext), "UTF-8");
-        System.out.println(plaintext);
+        return new String(cipher.doFinal(cipherText), "UTF-8");
+    }
+
+    public static String keyToString(SecretKey secretKey) {
+        byte[] encoded = secretKey.getEncoded();
+        return new BigInteger(1, encoded).toString(16);
+    }
+
+    public static SecretKey stringToKey(String secretKey) {
+        byte[] encoded = new BigInteger(secretKey, 16).toByteArray();
+        return new SecretKeySpec(encoded, "AES");
     }
 }

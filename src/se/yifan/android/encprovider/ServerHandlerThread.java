@@ -1,6 +1,7 @@
 package se.yifan.android.encprovider;
 
 import android.database.Cursor;
+import com.google.gson.Gson;
 import org.json.simple.JSONObject;
 import org.json.simple.parser.JSONParser;
 import org.json.simple.parser.ParseException;
@@ -12,7 +13,6 @@ import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.SecretKey;
 import java.io.*;
-import java.math.BigInteger;
 import java.net.Socket;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
@@ -175,7 +175,38 @@ public class ServerHandlerThread extends Thread {
         logger.info("Insert: started...");
 
         //start the insert
-        StringBuilder sql = buildInsertSql(fromClient);
+        StringBuilder sql = new StringBuilder();
+        sql.append("INSERT INTO ");
+        sql.append(fromClient.table);
+        sql.append(" (");
+
+        JSONObject json = (JSONObject) new JSONParser().parse(fromClient.contentValues);
+        HashMap<String, String> contentValues = (HashMap<String, String>) json.get("mValues");
+        HashMap<String, byte[]> encContentValues = new HashMap<String, byte[]>();
+        Object[] bindArgs = null;
+
+        SecretKey secret = EncUtil.generateKey();
+
+        int size = (contentValues != null && contentValues.size() > 0) ? contentValues.size() : 0;
+        if (size > 0) {
+            bindArgs = new Object[size + 1];
+            int i = 0;
+            for (String colName : contentValues.keySet()) {
+                sql.append((i > 0) ? "," : "");
+                sql.append(colName);
+                bindArgs[i++] = contentValues.get(colName);
+                encContentValues.put(colName, EncUtil.encryptMsg(contentValues.get(colName), secret));
+            }
+            sql.append(",").append(EncUtil.COLUMN_ENC_KEY);
+            bindArgs[i++] = EncUtil.keyToString(secret);
+            sql.append(')');
+            sql.append(" VALUES (");
+            sql = bindArguments(sql, bindArgs, fromClient.contentType);
+        } else {
+            sql.append(fromClient.nullColumnHack).append(") VALUES (NULL");
+        }
+        sql.append(')');
+
 
         connection = DatabaseConnection.getInstance();
         Statement p = connection.createStatement();
@@ -183,7 +214,9 @@ public class ServerHandlerThread extends Thread {
 
         //reply with key
         QueryPacket toClient = new QueryPacket();
-        toClient.key = "Test";
+        Gson gson = new Gson();
+        toClient.encContentValues = encContentValues;
+        toClient.key = null;
 
         //log end time
         long endTime = System.currentTimeMillis();
@@ -217,43 +250,6 @@ public class ServerHandlerThread extends Thread {
         return toClient;
     }
 
-    private StringBuilder buildInsertSql(QueryPacket fromClient) throws ParseException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, InvalidParameterSpecException, UnsupportedEncodingException, BadPaddingException, IllegalBlockSizeException {
-        StringBuilder sql = new StringBuilder();
-        sql.append("INSERT INTO ");
-        sql.append(fromClient.table);
-        sql.append(" (");
-
-        JSONObject json = (JSONObject) new JSONParser().parse(fromClient.contentValues);
-        HashMap<String, String> contentValues = (HashMap<String, String>) json.get("mValues");
-        Object[] bindArgs = null;
-
-        SecretKey secret = EncUtil.generateKey();
-
-        int size = (contentValues != null && contentValues.size() > 0) ? contentValues.size() : 0;
-        if (size > 0) {
-            bindArgs = new Object[size+1];
-            int i = 0;
-            for (String colName : contentValues.keySet()) {
-                sql.append((i > 0) ? "," : "");
-                sql.append(colName);
-                bindArgs[i++] = contentValues.get(colName);
-                EncUtil.encryptMsg(contentValues.get(colName), secret);
-            }
-            byte[] encoded = secret.getEncoded();
-            String data = new BigInteger(1, encoded).toString(16);
-            sql.append(",").append(EncUtil.COLUMN_ENC_KEY);
-            bindArgs[i++] = data;
-            sql.append(')');
-            sql.append(" VALUES (");
-            sql = bindArguments(sql, bindArgs, fromClient.contentType);
-        } else {
-            sql.append(fromClient.nullColumnHack).append(") VALUES (NULL");
-        }
-        sql.append(')');
-        return sql;
-    }
-
-
     private PreparedStatement buildQuerySql(String sql, String[] sqlArgs) throws SQLException {
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         if (sqlArgs != null) {
@@ -273,7 +269,7 @@ public class ServerHandlerThread extends Thread {
         }
 
         int i;
-        for (i = 0; i < count-1; i++) {
+        for (i = 0; i < count - 1; i++) {
             final Object arg = bindArgs[i];
             switch (bindArgsType[i]) {
                 case Cursor.FIELD_TYPE_NULL:

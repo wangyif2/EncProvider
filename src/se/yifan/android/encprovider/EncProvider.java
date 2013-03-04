@@ -18,6 +18,7 @@ import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -93,7 +94,7 @@ public class EncProvider extends ContentProvider {
         Log.i("EncProvider-timeLog", "Time spend in onCreate: " + duration);
     }
 
-    public String[] query(String sql, String[] selectionArgs) {
+    public HashMap<Integer,byte[]> query(String sql, String[] selectionArgs) {
         long startTime = System.currentTimeMillis();
         Log.i("EncProvider", "Query: \n\twith sql: " + sql + "\n\tselectionArgs: " + Arrays.toString(selectionArgs));
         toServer = new QueryPacket();
@@ -119,7 +120,7 @@ public class EncProvider extends ContentProvider {
         long duration = endTime - startTime;
         Log.i("EncProvider-timeLog", "Time spend in query: " + duration);
 
-        return new String[0];
+        return new HashMap<Integer, byte[]>();
     }
 
     public void insert(String tableContacts, String nullColumnHack, ContentValues contentValues) {
@@ -160,7 +161,13 @@ public class EncProvider extends ContentProvider {
         long duration = endTime - startTime;
         Log.i("EncProvider-timeLog", "Time spend in insert: " + duration);
 
-//        contentValues.put("key", fromServer.key);
+        HashMap<String, byte[]> encContentValues = (HashMap<String, byte[]>) fromServer.encContentValues;
+        int replySize = (encContentValues != null && encContentValues.size() > 0) ? encContentValues.size() : 0;
+        if (replySize > 0) {
+            for (String colName : encContentValues.keySet()) {
+                contentValues.put(colName, encContentValues.get(colName));
+            }
+        }
     }
 
     public void delete(String tableContacts, String whereClause, String[] whereArgs) {

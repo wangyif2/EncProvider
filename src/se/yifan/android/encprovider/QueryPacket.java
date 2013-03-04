@@ -1,6 +1,7 @@
 package se.yifan.android.encprovider;
 
 import java.io.Serializable;
+import java.util.HashMap;
 
 /**
  * User: robert
@@ -41,6 +42,7 @@ public class QueryPacket implements Serializable {
     public String[] args;
     public int[] contentType;
     public String db_table;
+    public HashMap<String, byte[]> encContentValues;
 
 
     @Override
