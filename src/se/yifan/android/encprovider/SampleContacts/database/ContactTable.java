@@ -17,7 +17,7 @@ public class ContactTable {
             + TABLE_CONTACTS
             + "(" + COLUMN_ID + " integer primary key autoincrement, "
             + COLUMN_NAME + " text not null, "
-            + COLUMN_EMAIL + " text not null,"
+            + COLUMN_EMAIL + " text not null, "
             + COLUMN_AGE + " integer not null" + ");";
 
     public static void onCreate(SQLiteDatabase database) {

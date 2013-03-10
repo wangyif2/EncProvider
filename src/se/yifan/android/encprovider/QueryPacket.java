@@ -38,12 +38,11 @@ public class QueryPacket implements Serializable {
     //for query
     public String db_query;
 
-    public String key;
+    public HashMap<String, byte[]> encContentValues;
+    public HashMap<Integer, byte[]> encKey;
     public String[] args;
     public int[] contentType;
     public String db_table;
-    public HashMap<String, byte[]> encContentValues;
-
 
     @Override
     public String toString() {
@@ -54,7 +53,7 @@ public class QueryPacket implements Serializable {
 
                 ", contentValues='" + contentValues + '\'' +
                 ", db_query='" + db_query + '\'' +
-                ", key='" + key + '\'' +
+                ", encContentValues='" + encContentValues + '\'' +
                 '}';
     }
 }

@@ -4,6 +4,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.UriMatcher;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQueryBuilder;
 import android.net.Uri;
@@ -77,16 +78,17 @@ public class ContactProvider extends EncProvider {
 
         //get readable?
         SQLiteDatabase db = database.getWritableDatabase();
-        HashMap<Integer, byte[]> decryptionSet= super.query(queryBuilder.buildQuery(projection, selection, null, null, sortOrder, null),
+        HashMap<Integer, byte[]> decryptionSet = super.query(queryBuilder.buildQuery(projection, selection, null, null, sortOrder, null),
                 selectionArgs);
 
         Cursor cursor = queryBuilder.query(db, projection, selection, selectionArgs, null, null, sortOrder);
 
         //create MatrixCursor here and decrypt what's in cursor with decryption set
+        cursor.moveToFirst();
+        MatrixCursor m = EncProvider.decryptLocalQuery(cursor, decryptionSet);
+        m.setNotificationUri(getContext().getContentResolver(), uri);
 
-        cursor.setNotificationUri(getContext().getContentResolver(), uri);
-
-        return cursor;
+        return m;
     }
 
     @Override

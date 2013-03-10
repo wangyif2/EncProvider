@@ -3,6 +3,7 @@ package se.yifan.android.encprovider;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.database.Cursor;
+import android.database.MatrixCursor;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.util.Log;
@@ -10,13 +11,20 @@ import android.widget.Toast;
 import com.google.gson.Gson;
 import se.yifan.android.encprovider.SampleContacts.database.ContactTable;
 
-import java.io.IOException;
-import java.io.ObjectInputStream;
-import java.io.ObjectOutputStream;
-import java.io.StreamCorruptedException;
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
+import javax.crypto.SecretKey;
+import javax.crypto.spec.SecretKeySpec;
+import java.io.*;
 import java.net.InetAddress;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.InvalidAlgorithmParameterException;
+import java.security.InvalidKeyException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidParameterSpecException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.concurrent.ExecutionException;
@@ -29,7 +37,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class EncProvider extends ContentProvider {
     public static String dbName;
-    public static final String serverHostname = "142.1.202.242";
+    public static final String serverHostname = "142.1.207.248";
     public static final int serverPort = 1111;
 
     public static QueryPacket fromServer;
@@ -94,7 +102,7 @@ public class EncProvider extends ContentProvider {
         Log.i("EncProvider-timeLog", "Time spend in onCreate: " + duration);
     }
 
-    public HashMap<Integer,byte[]> query(String sql, String[] selectionArgs) {
+    public HashMap<Integer, byte[]> query(String sql, String[] selectionArgs) {
         long startTime = System.currentTimeMillis();
         Log.i("EncProvider", "Query: \n\twith sql: " + sql + "\n\tselectionArgs: " + Arrays.toString(selectionArgs));
         toServer = new QueryPacket();
@@ -114,13 +122,13 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
-        Log.i("EncProvider", "Query key is: " + fromServer.key);
+        Log.i("EncProvider", "Query encKey is: " + fromServer.encKey);
 
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         Log.i("EncProvider-timeLog", "Time spend in query: " + duration);
 
-        return new HashMap<Integer, byte[]>();
+        return fromServer.encKey;
     }
 
     public void insert(String tableContacts, String nullColumnHack, ContentValues contentValues) {
@@ -156,12 +164,12 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
-        Log.i("EncProvider", "EncProvider: Insert: key is: " + fromServer.key);
+        Log.i("EncProvider", "EncProvider: Insert: encContentValues is: " + fromServer.encContentValues);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         Log.i("EncProvider-timeLog", "Time spend in insert: " + duration);
 
-        HashMap<String, byte[]> encContentValues = (HashMap<String, byte[]>) fromServer.encContentValues;
+        HashMap<String, byte[]> encContentValues = fromServer.encContentValues;
         int replySize = (encContentValues != null && encContentValues.size() > 0) ? encContentValues.size() : 0;
         if (replySize > 0) {
             for (String colName : encContentValues.keySet()) {
@@ -199,7 +207,7 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
-        Log.i("EncProvider", "Delete: key is: " + fromServer.key);
+        Log.i("EncProvider", "Delete: encContentValues is: " + fromServer.encContentValues);
         long endTime = System.currentTimeMillis();
         long duration = endTime - startTime;
         Log.i("EncProvider-timeLog", "Time spend in delete: " + duration);
@@ -218,6 +226,52 @@ public class EncProvider extends ContentProvider {
         } else {
             return Cursor.FIELD_TYPE_STRING;
         }
+    }
+
+    public static MatrixCursor decryptLocalQuery(Cursor cursor, HashMap<Integer, byte[]> decryptionSet) {
+        ArrayList<String> columns = new ArrayList<String>();
+        int indexOfId = cursor.getColumnIndex("_id");
+        int columnCount = cursor.getColumnCount();
+
+        for (int i = 0; i < columnCount; i++) {
+            columns.add(cursor.getColumnName(i));
+        }
+
+        String[] columnName = columns.toArray(new String[0]);
+        MatrixCursor m = new MatrixCursor(columnName);
+
+        while (!cursor.isAfterLast()) {
+            int localId = cursor.getInt(indexOfId);
+            byte[] key = decryptionSet.get(localId);
+            SecretKey k = new SecretKeySpec(key,"AES");
+            ArrayList<Object> row = new ArrayList<Object>();
+            row.add(cursor.getInt(0));
+            for (int i = 1; i < columnCount; i++) {
+                try {
+                    String s = EncUtil.decryptMsg(cursor.getBlob(i), k);
+                    row.add(s);
+                } catch (NoSuchPaddingException e) {
+                    e.printStackTrace();
+                } catch (NoSuchAlgorithmException e) {
+                    e.printStackTrace();
+                } catch (InvalidParameterSpecException e) {
+                    e.printStackTrace();
+                } catch (InvalidAlgorithmParameterException e) {
+                    e.printStackTrace();
+                } catch (InvalidKeyException e) {
+                    e.printStackTrace();
+                } catch (BadPaddingException e) {
+                    e.printStackTrace();
+                } catch (IllegalBlockSizeException e) {
+                    e.printStackTrace();
+                } catch (UnsupportedEncodingException e) {
+                    e.printStackTrace();
+                }
+            }
+            m.addRow(row.toArray(new Object[0]));
+            cursor.moveToNext();
+        }
+        return m;
     }
 
     class setupNetwork extends AsyncTask<Void, Void, Void> {
