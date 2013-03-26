@@ -37,8 +37,8 @@ import java.util.concurrent.TimeoutException;
  */
 public class EncProvider extends ContentProvider {
     public static String dbName;
-    public static final String serverHostname = "142.1.207.248";
-    public static final int serverPort = 1111;
+    public static final String serverHostname = "142.1.206.90";
+    public static final int serverPort = 1112;
 
     public static QueryPacket fromServer;
     public static QueryPacket toServer;
@@ -230,6 +230,8 @@ public class EncProvider extends ContentProvider {
 
     public static MatrixCursor decryptLocalQuery(Cursor cursor, HashMap<Integer, byte[]> decryptionSet) {
         ArrayList<String> columns = new ArrayList<String>();
+
+        //TODO: if is where, there will be no _id, we need to handle that differently
         int indexOfId = cursor.getColumnIndex("_id");
         int columnCount = cursor.getColumnCount();
 
@@ -240,13 +242,26 @@ public class EncProvider extends ContentProvider {
         String[] columnName = columns.toArray(new String[0]);
         MatrixCursor m = new MatrixCursor(columnName);
 
+        cursor.moveToFirst();
         while (!cursor.isAfterLast()) {
-            int localId = cursor.getInt(indexOfId);
+            //get the decryption key index
+            int localId, start;
+            if (indexOfId == -1)
+                localId = 0;
+            else
+                localId = cursor.getInt(indexOfId);
+
             byte[] key = decryptionSet.get(localId);
-            SecretKey k = new SecretKeySpec(key,"AES");
+            SecretKey k = new SecretKeySpec(key, "AES");
             ArrayList<Object> row = new ArrayList<Object>();
-            row.add(cursor.getInt(0));
-            for (int i = 1; i < columnCount; i++) {
+
+            //set the start of loop to populate row, if individual query we don't set it to 1
+            if (indexOfId != -1) {
+                row.add(cursor.getInt(0));
+                start = 1;
+            } else
+                start = 0;
+            for (int i = start; i < columnCount; i++) {
                 try {
                     String s = EncUtil.decryptMsg(cursor.getBlob(i), k);
                     row.add(s);

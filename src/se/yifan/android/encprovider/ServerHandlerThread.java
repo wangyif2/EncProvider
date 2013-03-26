@@ -153,6 +153,7 @@ public class ServerHandlerThread extends Thread {
         ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
         HashMap<Integer, byte[]> encKey = new HashMap<Integer, byte[]>();
         while (resultSet.next()) {
+            //TODO: if is where, there will be no _id, we need to handle that differently
             encKey.put(resultSet.getInt(1), resultSet.getBytes(EncUtil.COLUMN_ENC_KEY));
             for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
                 logger.info(resultSetMetaData.getColumnName(i) + ": " + resultSet.getString(i));
@@ -236,7 +237,7 @@ public class ServerHandlerThread extends Thread {
         String[] whereArgs = fromClient.args;
 
         connection = DatabaseConnection.getInstance();
-        PreparedStatement preparedStatement = buildQuerySql("DELETE FROM " + fromClient.table +
+        PreparedStatement preparedStatement = buildDeleteSql("DELETE FROM " + fromClient.table +
                 ((whereClause != null) ? " WHERE " + whereClause : ""), whereArgs);
         preparedStatement.executeUpdate();
         preparedStatement.close();
@@ -249,6 +250,18 @@ public class ServerHandlerThread extends Thread {
         long endTime = System.currentTimeMillis();
         logger.info("Delete: done..." + (endTime - startTime));
         return toClient;
+    }
+
+    private PreparedStatement buildDeleteSql(String sql, String[] sqlArgs) throws SQLException {
+        logger.info(sql);
+        PreparedStatement preparedStatement = connection.prepareStatement(sql);
+        if (sqlArgs != null) {
+            int i = 0;
+            for (String args : sqlArgs) {
+                preparedStatement.setObject(i++, args);
+            }
+        }
+        return preparedStatement;
     }
 
     private PreparedStatement buildQuerySql(String sql, String[] sqlArgs) throws SQLException {

@@ -92,11 +92,11 @@ public class ContactDetailActivity extends Activity {
         values.put(ContactTable.COLUMN_EMAIL, email);
         values.put(ContactTable.COLUMN_AGE, age);
 
-        if (contactUri == null) {
-            contactUri = getContentResolver().insert(ContactProvider.CONTENT_URI, values);
-        } else {
-            getContentResolver().update(contactUri, values, null, null);
-        }
+//        if (contactUri == null) {
+//            contactUri = getContentResolver().insert(ContactProvider.CONTENT_URI, values);
+//        } else {
+//            getContentResolver().update(contactUri, values, null, null);
+//        }
     }
 
     private void makeToast() {
