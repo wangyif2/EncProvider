@@ -37,7 +37,7 @@ import java.util.concurrent.TimeoutException;
  */
 public class EncProvider extends ContentProvider {
     public static String dbName;
-    public static final String serverHostname = "142.1.206.90";
+    public static final String serverHostname = "192.168.0.10";
     public static final int serverPort = 1112;
 
     public static QueryPacket fromServer;
@@ -79,7 +79,7 @@ public class EncProvider extends ContentProvider {
     }
 
     public void onCreate(String databaseCreationScript, String databaseName) throws IOException, ClassNotFoundException {
-        long startTime = System.currentTimeMillis();
+        TimeLogClient.logClientDuration("onCreate-encProvider-sendToServer");
         dbName = databaseName;
 
         new setupNetwork().execute();
@@ -90,21 +90,24 @@ public class EncProvider extends ContentProvider {
         toServer.db_table = ContactTable.TABLE_CONTACTS;
         toServer.db_name = dbName;
 
-        new EncNetworkHandler() {
-            @Override
-            public void onPostExecute(QueryPacket result) {
-                fromServer = result;
-            }
-        }.execute(toServer);
+        EncNetworkHandler en = (EncNetworkHandler) new EncNetworkHandler().execute(toServer);
+        try {
+            fromServer = en.get(5000, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        } catch (ExecutionException e) {
+            e.printStackTrace();
+        } catch (TimeoutException e) {
+            e.printStackTrace();
+        }
 
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-        Log.i("EncProvider-timeLog", "Time spend in onCreate: " + duration);
+        TimeLogClient.logClientDuration("onCreate-encProvider-gotReplyFromServer");
     }
 
     public HashMap<Integer, byte[]> query(String sql, String[] selectionArgs) {
-        long startTime = System.currentTimeMillis();
+        TimeLogClient.logClientDuration("query-encProvider-sendToServer");
         Log.i("EncProvider", "Query: \n\twith sql: " + sql + "\n\tselectionArgs: " + Arrays.toString(selectionArgs));
+
         toServer = new QueryPacket();
         toServer.type = QueryPacket.DB_QUERY;
         toServer.db_name = dbName;
@@ -122,17 +125,14 @@ public class EncProvider extends ContentProvider {
             e.printStackTrace();
         }
 
+        TimeLogClient.logClientDuration("query-encProvider-gotReplyFromServer");
         Log.i("EncProvider", "Query encKey is: " + fromServer.encKey);
-
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-        Log.i("EncProvider-timeLog", "Time spend in query: " + duration);
 
         return fromServer.encKey;
     }
 
     public void insert(String tableContacts, String nullColumnHack, ContentValues contentValues) {
-        long startTime = System.currentTimeMillis();
+        TimeLogClient.logClientDuration("insert-encProvider-sendToServer");
         Log.i("EncProvider", "Insert: \n\twith table: " + tableContacts + "\n\tContentValues: " + contentValues.toString());
 
         toServer = new QueryPacket();
@@ -165,9 +165,6 @@ public class EncProvider extends ContentProvider {
         }
 
         Log.i("EncProvider", "EncProvider: Insert: encContentValues is: " + fromServer.encContentValues);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-        Log.i("EncProvider-timeLog", "Time spend in insert: " + duration);
 
         HashMap<String, byte[]> encContentValues = fromServer.encContentValues;
         int replySize = (encContentValues != null && encContentValues.size() > 0) ? encContentValues.size() : 0;
@@ -176,10 +173,12 @@ public class EncProvider extends ContentProvider {
                 contentValues.put(colName, encContentValues.get(colName));
             }
         }
+        TimeLogClient.logClientDuration("insert-encProvider-gotReplyFromServer");
     }
 
     public void delete(String tableContacts, String whereClause, String[] whereArgs) {
-        long startTime = System.currentTimeMillis();
+        TimeLogClient.logClientDuration("delete-encProvider-sendToServer");
+
         if (whereClause == null || whereArgs == null)
             Log.i("EncProvider", "Delete: \n\twith table: " + tableContacts + "\n\twhereClause: null\n\twhereArgs: null");
         else
@@ -208,9 +207,7 @@ public class EncProvider extends ContentProvider {
         }
 
         Log.i("EncProvider", "Delete: encContentValues is: " + fromServer.encContentValues);
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-        Log.i("EncProvider-timeLog", "Time spend in delete: " + duration);
+        TimeLogClient.logClientDuration("delete-encProvider-gotReplyFromServer");
     }
 
     public static int getTypeOfObject(Object obj) {
@@ -229,9 +226,9 @@ public class EncProvider extends ContentProvider {
     }
 
     public static MatrixCursor decryptLocalQuery(Cursor cursor, HashMap<Integer, byte[]> decryptionSet) {
+        TimeLogClient.logClientDuration("query-encProvider-startDecryption");
         ArrayList<String> columns = new ArrayList<String>();
 
-        //TODO: if is where, there will be no _id, we need to handle that differently
         int indexOfId = cursor.getColumnIndex("_id");
         int columnCount = cursor.getColumnCount();
 
@@ -286,6 +283,8 @@ public class EncProvider extends ContentProvider {
             m.addRow(row.toArray(new Object[0]));
             cursor.moveToNext();
         }
+
+        TimeLogClient.logClientDuration("query-encProvider-endDecryption");
         return m;
     }
 

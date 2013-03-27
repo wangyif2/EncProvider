@@ -42,13 +42,17 @@ public class ServerHandlerThread extends Thread {
     @Override
     public void run() {
         try {
+
             QueryPacket fromClient;
 
             ObjectInputStream from = new ObjectInputStream(socket.getInputStream());
             ObjectOutputStream to = new ObjectOutputStream(socket.getOutputStream());
 
             while ((fromClient = (QueryPacket) from.readObject()) != null && !done) {
-                logger.info("Started...\n\tRead Packet Type: " + fromClient.type);
+                TimeLogServer.setStartTime();
+                TimeLogServer.logServerDuration("run-start");
+//                logger.info("Started...\n\tRead Packet Type: " + fromClient.type);
+
                 Server.dbName = fromClient.db_name;
 
                 long startTime = System.currentTimeMillis();
@@ -76,8 +80,10 @@ public class ServerHandlerThread extends Thread {
                     default:
                         break;
                 }
-                long endTime = System.currentTimeMillis();
-                logger.info("Finished...\n\tTime spent processing the switch: " + (endTime - startTime));
+
+                TimeLogServer.logServerDuration("run-end");
+//                long endTime = System.currentTimeMillis();
+//                logger.info("Finished...\n\tTime spent processing the switch: " + (endTime - startTime));
             }
 
             from.close();
@@ -117,8 +123,9 @@ public class ServerHandlerThread extends Thread {
 
     private QueryPacket createDB(QueryPacket fromClient) throws SQLException {
         //start time measure
-        long startTime = System.currentTimeMillis();
-        logger.info("Create: started.. \n\tDatabase name: " + fromClient.db_name + "\n\tand Creation Statement:\n\t" + fromClient.db_creation);
+        TimeLogServer.logServerDuration("createDB-start");
+//        long startTime = System.currentTimeMillis();
+//        logger.info("Create: started.. \n\tDatabase name: " + fromClient.db_name + "\n\tand Creation Statement:\n\t" + fromClient.db_creation);
 
         //start creating table
         connection = DatabaseConnection.getInstance();
@@ -132,15 +139,17 @@ public class ServerHandlerThread extends Thread {
         toClient.encContentValues = new HashMap<String, byte[]>();
 
         //log the time
-        long endTime = System.currentTimeMillis();
-        logger.info("Create: done..." + (endTime - startTime));
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Create: done..." + (endTime - startTime));
+        TimeLogServer.logServerDuration("createDB-end");
         return toClient;
     }
 
     private QueryPacket queryDB(QueryPacket fromClient) throws SQLException {
         //start time measure
-        long startTime = System.currentTimeMillis();
-        logger.info("Query: started...");
+        TimeLogServer.logServerDuration("query-start");
+//        long startTime = System.currentTimeMillis();
+//        logger.info("Query: started...");
 
         //start the query
         String sql = fromClient.db_query;
@@ -156,7 +165,7 @@ public class ServerHandlerThread extends Thread {
             //TODO: if is where, there will be no _id, we need to handle that differently
             encKey.put(resultSet.getInt(1), resultSet.getBytes(EncUtil.COLUMN_ENC_KEY));
             for (int i = 1; i <= resultSetMetaData.getColumnCount(); i++) {
-                logger.info(resultSetMetaData.getColumnName(i) + ": " + resultSet.getString(i));
+//                logger.info(resultSetMetaData.getColumnName(i) + ": " + resultSet.getString(i));
             }
         }
 
@@ -168,16 +177,18 @@ public class ServerHandlerThread extends Thread {
         toClient.encKey = encKey;
 
         //log end time
-        long endTime = System.currentTimeMillis();
-        logger.info("Query: done..." + (endTime - startTime));
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Query: done..." + (endTime - startTime));
+        TimeLogServer.logServerDuration("query-end");
 
         return toClient;
     }
 
     private QueryPacket insertDB(QueryPacket fromClient) throws ParseException, SQLException, NoSuchPaddingException, BadPaddingException, NoSuchAlgorithmException, IllegalBlockSizeException, UnsupportedEncodingException, InvalidParameterSpecException, InvalidKeyException, InvalidKeySpecException, NoSuchProviderException {
         //start time measure
-        long startTime = System.currentTimeMillis();
-        logger.info("Insert: started...");
+        TimeLogServer.logServerDuration("insert-start");
+//        long startTime = System.currentTimeMillis();
+//        logger.info("Insert: started...");
 
         //start the insert
         StringBuilder sql = new StringBuilder();
@@ -221,16 +232,18 @@ public class ServerHandlerThread extends Thread {
         toClient.encContentValues = encContentValues;
 
         //log end time
-        long endTime = System.currentTimeMillis();
-        logger.info("Insert: done..." + (endTime - startTime));
+        TimeLogServer.logServerDuration("insert-end");
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Insert: done..." + (endTime - startTime));
 
         return toClient;
     }
 
     private QueryPacket deleteDB(QueryPacket fromClient) throws SQLException {
         //start timing
-        long startTime = System.currentTimeMillis();
-        logger.info("Delete: started... ");
+        TimeLogServer.logServerDuration("delete-start");
+//        long startTime = System.currentTimeMillis();
+//        logger.info("Delete: started... ");
 
         //start delete
         String whereClause = fromClient.whereClause;
@@ -247,13 +260,14 @@ public class ServerHandlerThread extends Thread {
         toClient.encContentValues = new HashMap<String, byte[]>();
 
         //log time spent
-        long endTime = System.currentTimeMillis();
-        logger.info("Delete: done..." + (endTime - startTime));
+        TimeLogServer.logServerDuration("delete-end");
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Delete: done..." + (endTime - startTime));
         return toClient;
     }
 
     private PreparedStatement buildDeleteSql(String sql, String[] sqlArgs) throws SQLException {
-        logger.info(sql);
+//        logger.info(sql);
         PreparedStatement preparedStatement = connection.prepareStatement(sql);
         if (sqlArgs != null) {
             int i = 0;
@@ -275,7 +289,7 @@ public class ServerHandlerThread extends Thread {
             newSql.append(sa + " ");
         }
 
-        logger.info(newSql.toString());
+//        logger.info(newSql.toString());
         PreparedStatement preparedStatement = connection.prepareStatement(newSql.toString());
         if (sqlArgs != null) {
             int i = 0;

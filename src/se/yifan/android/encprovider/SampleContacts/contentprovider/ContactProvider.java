@@ -12,6 +12,7 @@ import android.text.TextUtils;
 import se.yifan.android.encprovider.EncProvider;
 import se.yifan.android.encprovider.SampleContacts.database.ContactDatabaseHelper;
 import se.yifan.android.encprovider.SampleContacts.database.ContactTable;
+import se.yifan.android.encprovider.TimeLogClient;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -19,9 +20,6 @@ import java.util.HashMap;
 import java.util.HashSet;
 
 public class ContactProvider extends EncProvider {
-
-    private static final boolean DEBUG = true;
-
     // database
     private ContactDatabaseHelper database;
 
@@ -47,6 +45,9 @@ public class ContactProvider extends EncProvider {
 
     @Override
     public boolean onCreate() {
+        TimeLogClient.setStartTime();
+        TimeLogClient.logClientDuration("onCreate-contactProvider-start");
+
         try {
             super.onCreate(ContactTable.DATABASE_CREATE, ContactDatabaseHelper.DATABASE_NAME);
         } catch (IOException e) {
@@ -56,11 +57,15 @@ public class ContactProvider extends EncProvider {
         }
 
         database = new ContactDatabaseHelper(getContext());
+        TimeLogClient.logClientDuration("onCreate-contactProvider-end");
         return false;
     }
 
     @Override
     public Cursor query(Uri uri, String[] projection, String selection, String[] selectionArgs, String sortOrder) {
+        TimeLogClient.setStartTime();
+        TimeLogClient.logClientDuration("query-contactProvider-start");
+
         checkColumns(projection);
         SQLiteQueryBuilder queryBuilder = new SQLiteQueryBuilder();
         queryBuilder.setTables(ContactTable.TABLE_CONTACTS);
@@ -88,6 +93,8 @@ public class ContactProvider extends EncProvider {
         MatrixCursor m = EncProvider.decryptLocalQuery(cursor, decryptionSet);
         m.setNotificationUri(getContext().getContentResolver(), uri);
 
+        //get total run time
+        TimeLogClient.logClientDuration("query-contactProvider-end");
         return m;
     }
 
@@ -98,6 +105,9 @@ public class ContactProvider extends EncProvider {
 
     @Override
     public Uri insert(Uri uri, ContentValues values) {
+        TimeLogClient.setStartTime();
+        TimeLogClient.logClientDuration("insert-contactProvider-start");
+
         int uriType = sURIMatcher.match(uri);
 
         SQLiteDatabase sqlDB = database.getWritableDatabase();
@@ -111,11 +121,18 @@ public class ContactProvider extends EncProvider {
                 throw new IllegalArgumentException("Unknown URI: " + uri);
         }
         getContext().getContentResolver().notifyChange(uri, null);
+
+        //get total run time
+        TimeLogClient.logClientDuration("insert-contactProvider-end");
+
         return Uri.parse(BASE_PATH + "/" + id);
     }
 
     @Override
     public int delete(Uri uri, String selection, String[] selectionArgs) {
+        TimeLogClient.setStartTime();
+        TimeLogClient.logClientDuration("delete-contactProvider-start");
+
         super.delete(uri, selection, selectionArgs);
 
         int uriType = sURIMatcher.match(uri);
@@ -141,6 +158,10 @@ public class ContactProvider extends EncProvider {
                 throw new IllegalArgumentException("Unknown URI: " + uri);
         }
         getContext().getContentResolver().notifyChange(uri, null);
+
+        //get total run time
+        TimeLogClient.logClientDuration("delete-contactProvider-end");
+
         return rowsDeleted;
     }
 

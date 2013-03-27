@@ -23,7 +23,8 @@ public class EncUtil {
     private static Logger logger = LoggerFactory.getLogger(EncUtil.class);
 
     public static SecretKey generateKey() throws NoSuchAlgorithmException, InvalidKeySpecException {
-        long startTime = System.currentTimeMillis();
+        TimeLogServer.logServerDuration("generateKey-start");
+//        long startTime = System.currentTimeMillis();
         /* Derive the encContentValues, given password and salt. */
 //        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA1");
 //        Random r = new SecureRandom();
@@ -38,25 +39,29 @@ public class EncUtil {
         SecretKey secret = new SecretKeySpec(password.getBytes(), "AES");
         byte[] encoded = secret.getEncoded();
         String data = new BigInteger(1, encoded).toString(16);
-        logger.info("encrypted_key: " + data);
+//        logger.info("encrypted_key: " + data);
 
-        long endTime = System.currentTimeMillis();
-        logger.info("Encryption took: " + (endTime - startTime));
-
+//        long endTime = System.currentTimeMillis();
+//        logger.info("Encryption took: " + (endTime - startTime));
+        TimeLogServer.logServerDuration("generateKey-end");
         return secret;
     }
 
     public static byte[] encryptMsg(String message, SecretKey secret) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, InvalidParameterSpecException, IllegalBlockSizeException, BadPaddingException, UnsupportedEncodingException {
     /* Encrypt the message. */
+        TimeLogServer.logServerDuration("encryptMsg-start");
+
         Cipher cipher = null;
         cipher = Cipher.getInstance("AES/ECB/PKCS5Padding");
         cipher.init(Cipher.ENCRYPT_MODE, secret);
         byte[] cipherText = cipher.doFinal(message.getBytes("UTF-8"));
-        logger.info("encrypted: " + new String(cipherText, "UTF-8"));
+//        logger.info("encrypted: " + new String(cipherText, "UTF-8"));
+        TimeLogServer.logServerDuration("encryptMsg-end");
         return cipherText;
     }
 
     public static String decryptMsg(byte[] cipherText, SecretKey secret) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidParameterSpecException, InvalidAlgorithmParameterException, InvalidKeyException, BadPaddingException, IllegalBlockSizeException, UnsupportedEncodingException {
+        TimeLogServer.logServerDuration("decryptMsg-start");
 
         /* Decrypt the message, given derived encContentValues and initialization vector. */
         Cipher cipher = null;
@@ -65,7 +70,9 @@ public class EncUtil {
 //        byte[] iv = params.getParameterSpec(IvParameterSpec.class).getIV();
 //        cipher.init(Cipher.DECRYPT_MODE, secret, new IvParameterSpec(iv));
         cipher.init(Cipher.DECRYPT_MODE, secret);
-        return new String(cipher.doFinal(cipherText), "UTF-8");
+        String decryptString = new String(cipher.doFinal(cipherText), "UTF-8");
+        TimeLogServer.logServerDuration("decryptMsg-end");
+        return decryptString;
     }
 
 //    public static byte[] keyToString(SecretKey secretKey) {
